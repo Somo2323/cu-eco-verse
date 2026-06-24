@@ -6,26 +6,15 @@ import {
   Wallet, 
   Navigation, 
   Zap, 
-  Trash2, 
   Flame, 
   Users, 
   Gift, 
-  User, 
-  ArrowRight, 
   CheckCircle2, 
-  TrendingDown, 
   Sparkles,
   Info,
-  Clock,
   ChevronRight,
-  ShieldCheck,
   Sun,
-  X,
-  Droplet,
-  Calculator,
-  Percent,
-  Sliders,
-  Award as Trophy
+  X
 } from 'lucide-react';
 
 export default function App() {
@@ -42,6 +31,9 @@ export default function App() {
   const [chosenRoute, setChosenRoute] = useState(null); // stores selected route ID
   const [completedQuests, setCompletedQuests] = useState([]); // Array of completed quest IDs
   
+  // Calculated Personal Clean Energy Saved (kWh)
+  const personalEnergySaved = (carbonSaved * 1.5).toFixed(1);
+
   // Interactive Notifications State
   const [notifications, setNotifications] = useState([
     { id: 1, type: 'alert', text: '🚨 ภูตคาร์บอน (Carbon Ghost) ก่อกวน! ตึกวิศวฯ 3 พบการเปิดไฟทิ้งไว้ในวันหยุด!' },
@@ -58,12 +50,7 @@ export default function App() {
 
   // Interactive Toast State
   const [toast, setToast] = useState(null);
-
-  // Live Simulator States for user custom testing (Image 2 logic)
-  const [simSaving, setSimSaving] = useState(20); // 20% saving default
-  const [simCleanEnergy, setSimCleanEnergy] = useState(50); // 50% clean energy usage default
-  const [simParticipation, setSimParticipation] = useState(80); // 80% student participation default
-
+  
   // Custom transaction log for Wallet
   const [transactions, setTransactions] = useState([
     { id: 1, title: 'แลกกล่องข้าวหมุนเวียนสำเร็จ', change: -50, type: 'spend', date: 'วันนี้' },
@@ -76,6 +63,7 @@ export default function App() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  // XP Progress and Levelling Logic
   const xpNeededForNextLevel = level * 100;
   
   const addXP = (amount) => {
@@ -212,9 +200,6 @@ export default function App() {
         <h2 className="text-3xl font-black tracking-tight leading-tight bg-gradient-to-r from-pink-500 via-rose-400 to-emerald-400 bg-clip-text text-transparent">
           CU Eco-Verse
         </h2>
-        <p className="text-sm font-medium text-slate-300 leading-relaxed">
-          เปลี่ยนระบบประหยัดพลังงานที่ซับซ้อนให้กลายเป็น **"เกม RPG บนโลกจริง"** พร้อมการคิดคะแนนความยั่งยืนด้วยสูตร **Renewable Energy Score (RES)** ตามเกณฑ์การประเมินของจุฬาฯ
-        </p>
       </div>
 
       {/* RIGHT COLUMN: Mobile simulator container */}
@@ -752,18 +737,31 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Leaderboard rankings adjusted to use exact formula calculations */}
+              {/* Personal Contribution Clean Energy Saved Card */}
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                  <Sun className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-extrabold text-emerald-400 uppercase tracking-wider">พลังสะอาดที่คุณช่วยลดให้คณะ</h4>
+                  <p className="text-base font-black text-slate-800 mt-0.5">
+                    {personalEnergySaved} <span className="text-xs font-semibold text-slate-500">kWh สะสม</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Leaderboard rankings */}
               <div className="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-xs space-y-3.5">
                 <div className="flex justify-between items-center">
                   <h4 className="text-xs font-black text-slate-800 tracking-tight flex items-center gap-1">
-                    <Trophy className="w-4 h-4 text-pink-600 animate-pulse" /> Faculty Leaderboard (RES-Rank)
+                    <Users className="w-4 h-4 text-pink-600" /> ตารางคะแนนและกิลด์ระหว่างคณะ (Guilds)
                   </h4>
                   <span className="text-[9px] text-slate-400 font-semibold">ฤดูกาลที่ 1</span>
                 </div>
 
                 <div className="space-y-2.5">
                   {/* Guild Rank 1: Engineering */}
-                  {/* Calculation: Saving 24%, Clean Energy 55%, Participation 85% -> RES = 45.5 */}
+                  {/* Calculation: Saving 24%, Clean Energy 55%, Participation 85% -> RES = (50x0.24) + (30x0.55) + (20x0.85) = 12 + 16.5 + 17 = 45.5 */}
                   <div className="bg-gradient-to-r from-emerald-50 to-emerald-50/20 border border-emerald-100 rounded-2xl p-3">
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-2.5">
@@ -772,24 +770,24 @@ export default function App() {
                         </div>
                         <div>
                           <h5 className="text-[11px] font-bold text-slate-800">วิศวกรรมศาสตร์ (ENG)</h5>
-                          <p className="text-[9px] text-slate-500">แชมป์ปิดสวิตช์ห้องเรียน</p>
+                          <p className="text-[9px] text-slate-500">พลังสะอาดสะสมลดได้: <span className="font-extrabold text-emerald-600">2,450 kWh</span></p>
                         </div>
                       </div>
                       <div className="text-right">
                         <span className="text-xs font-black text-emerald-700 block">45.5 RES</span>
-                        <span className="text-[8px] text-slate-400">ตัวคูณ x1.2</span>
+                        <span className="text-[8px] text-slate-400">โบนัสกิลด์ x1.2</span>
                       </div>
                     </div>
                     {/* Visual RES sub-metrics values */}
                     <div className="mt-2 pt-2 border-t border-slate-100 flex justify-between text-[8px] font-mono text-slate-500">
-                      <span>ประหยัดไฟ: 24% (x0.5)</span>
-                      <span>หมุนเวียน: 55% (x0.3)</span>
-                      <span>ส่วนร่วม: 85% (x0.2)</span>
+                      <span>ประหยัดไฟ: 24%</span>
+                      <span>หมุนเวียน: 55%</span>
+                      <span>ส่วนร่วม: 85%</span>
                     </div>
                   </div>
 
                   {/* Guild Rank 2: Science */}
-                  {/* Calculation: Saving 18%, Clean Energy 60%, Participation 75% -> RES = 42.0 */}
+                  {/* Calculation: Saving 18%, Clean Energy 60%, Participation 75% -> RES = (50x0.18) + (30x0.6) + (20x0.75) = 9 + 18 + 15 = 42.0 */}
                   <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3">
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-2.5">
@@ -798,24 +796,24 @@ export default function App() {
                         </div>
                         <div>
                           <h5 className="text-[11px] font-bold text-slate-800">วิทยาศาสตร์ (SCI)</h5>
-                          <p className="text-[9px] text-slate-500">แชมป์ดูแลพลังงานห้องแล็บ</p>
+                          <p className="text-[9px] text-slate-500">พลังสะอาดสะสมลดได้: <span className="font-semibold text-slate-700">1,980 kWh</span></p>
                         </div>
                       </div>
                       <div className="text-right">
                         <span className="text-xs font-black text-slate-700 block">42.0 RES</span>
-                        <span className="text-[8px] text-slate-400">ตัวคูณ x1.1</span>
+                        <span className="text-[8px] text-slate-400">โบนัสกิลด์ x1.1</span>
                       </div>
                     </div>
                     {/* Visual RES sub-metrics values */}
                     <div className="mt-2 pt-2 border-t border-slate-100/60 flex justify-between text-[8px] font-mono text-slate-400">
-                      <span>ประหยัดไฟ: 18% (x0.5)</span>
-                      <span>หมุนเวียน: 60% (x0.3)</span>
-                      <span>ส่วนร่วม: 75% (x0.2)</span>
+                      <span>ประหยัดไฟ: 18%</span>
+                      <span>หมุนเวียน: 60%</span>
+                      <span>ส่วนร่วม: 75%</span>
                     </div>
                   </div>
 
                   {/* Guild Rank 3: Architecture */}
-                  {/* Calculation: Saving 15%, Clean Energy 40%, Participation 90% -> RES = 37.5 */}
+                  {/* Calculation: Saving 15%, Clean Energy 40%, Participation 90% -> RES = (50x0.15) + (30x0.4) + (20x0.9) = 7.5 + 12 + 18 = 37.5 */}
                   <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3">
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-2.5">
@@ -824,28 +822,25 @@ export default function App() {
                         </div>
                         <div>
                           <h5 className="text-[11px] font-bold text-slate-800">สถาปัตยกรรมศาสตร์ (ARC)</h5>
-                          <p className="text-[9px] text-slate-500">แชมป์สแกนเดินเรียนลดคาร์บอน</p>
+                          <p className="text-[9px] text-slate-500">พลังสะอาดสะสมลดได้: <span className="font-semibold text-slate-700">1,420 kWh</span></p>
                         </div>
                       </div>
                       <div className="text-right">
                         <span className="text-xs font-black text-slate-500 block">37.5 RES</span>
-                        <span className="text-[8px] text-slate-400">ตัวคูณ x1.0</span>
+                        <span className="text-[8px] text-slate-400">โบนัสกิลด์ x1.0</span>
                       </div>
                     </div>
                     {/* Visual RES sub-metrics values */}
                     <div className="mt-2 pt-2 border-t border-slate-100/60 flex justify-between text-[8px] font-mono text-slate-400">
-                      <span>ประหยัดไฟ: 15% (x0.5)</span>
-                      <span>หมุนเวียน: 40% (x0.3)</span>
-                      <span>ส่วนร่วม: 90% (x0.2)</span>
+                      <span>ประหยัดไฟ: 15%</span>
+                      <span>หมุนเวียน: 40%</span>
+                      <span>ส่วนร่วม: 90%</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 text-[9px] text-slate-500 leading-normal flex items-start gap-1.5">
-                  <span className="text-emerald-600 text-base shrink-0">💡</span>
-                  <p>
-                    <span className="font-extrabold text-slate-700">กลไกการปรับเปลี่ยนพฤทีพฤติกรรม:</span> ยิ่งคนในกิลด์ช่วยกันกดยืนยันปิดแอร์ห้องเรียน หรือเพิ่มสัดส่วนพลังงาน Solar-Share คณะคุณจะได้รับคะแนน **RES สูงสุด** ประจำสัปดาห์!
-                  </p>
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 text-[9px] text-slate-500 leading-normal">
+                  💡 <span className="font-extrabold text-slate-700">กติกาการแข่งแบบร่วมมือ:</span> ยิ่งคนในคณะร่วมใจทำเควสและเดินเรียนเยอะขึ้น ตัวคูณ Multiplier ของคณะจะยิ่งสูง ซึ่งจะช่วยเปลี่ยนโซลาร์พลังงานเป็นเหรียญเงินกิจกรรมคณะได้มากขึ้นเท่านั้น!
                 </div>
               </div>
 
