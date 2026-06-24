@@ -388,7 +388,7 @@ export default function App() {
               >
                 <span className="flex items-center gap-2">
                   <Share2 className="w-4 h-4 text-emerald-300 group-hover:scale-110 transition-transform" />
-                  แชร์กรีนการ์ดวันนี้ลง Story (Strava Style)
+                  แชร์กรีนการ์ดวันนี้ลง Story อวดเพื่อน ๆ กัน!
                 </span>
                 <span className="bg-white/20 px-2 py-0.5 rounded text-[9px]">READY 📲</span>
               </button>
