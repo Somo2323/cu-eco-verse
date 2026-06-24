@@ -24,7 +24,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('home'); // home, route, quests, wallet, guild
   const [activeQuestTab, setActiveQuestTab] = useState('daily'); // daily, classroom, lab, weekly
   
-  // Real-time Player State
   const [coins, setCoins] = useState(1250);
   const [carbonSaved, setCarbonSaved] = useState(42.5); // in kg CO2e
   const [streak, setStreak] = useState(4);
@@ -33,10 +32,8 @@ export default function App() {
   const [chosenRoute, setChosenRoute] = useState(null); // stores selected route ID
   const [completedQuests, setCompletedQuests] = useState([]); // Array of completed quest IDs
   
-  // Calculated Personal Clean Energy Saved (kWh)
   const personalEnergySaved = (carbonSaved * 1.5).toFixed(1);
 
-  // Sharing Card Overlay state
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [storyTheme, setStoryTheme] = useState('cyberpunk'); // cyberpunk, emerald, aurora, sunset, transparent
   const [html2canvasLoaded, setHtml2canvasLoaded] = useState(false);
@@ -46,7 +43,6 @@ export default function App() {
   const storyCardRef = useRef(null);
 
   useEffect(() => {
-    // Dynamic import of html2canvas via CDN for high quality image rendering
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
     script.async = true;
@@ -58,7 +54,6 @@ export default function App() {
     };
   }, []);
 
-  // Energy values strictly associated with the actions
   const activityEnergyValues = {
     r_walk: 0.35,
     r_bike: 0.28,
@@ -258,48 +253,40 @@ export default function App() {
   };
 
   const generatePreviewImage = () => {
-    if (!html2canvasLoaded || !storyCardRef.current) return;
+    if (!html2canvasLoaded || !storyCardRef.current || !window.html2canvas) return;
     setGenerating(true);
     
-    // Slight defer to guarantee complete DOM settlement before shooting
-    setTimeout(() => {
-      if (storyCardRef.current && window.html2canvas) {
-        window.html2canvas(storyCardRef.current, {
-          scale: 2, // Optimized sharpness for high-speed delivery
-          useCORS: true,
-          backgroundColor: null,
-          logging: false
-        }).then(canvas => {
-          const imgData = canvas.toDataURL("image/png");
-          setExportedImageUrl(imgData);
-          setGenerating(false);
-        }).catch(err => {
-          console.error("Story Card generation failed", err);
-          setGenerating(false);
-        });
-      } else {
-        setGenerating(false);
-      }
-    }, 200);
+    // Scale 2 is highly responsive and sharp on all device viewports
+    window.html2canvas(storyCardRef.current, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: null,
+      logging: false
+    }).then(canvas => {
+      const imgData = canvas.toDataURL("image/png");
+      setExportedImageUrl(imgData);
+      setGenerating(false);
+    }).catch(err => {
+      console.error("Story Card background generation failed", err);
+      setGenerating(false);
+    });
   };
 
-  // Automatically trigger rendering update on tab state shifts
+  // Re-render whenever metrics, quests or themes are updated
   useEffect(() => {
     if (isShareModalOpen && html2canvasLoaded) {
-      generatePreviewImage();
+      setExportedImageUrl(null);
+      const timer = setTimeout(() => {
+        generatePreviewImage();
+      }, 300);
+      return () => clearTimeout(timer);
     }
-  }, [isShareModalOpen, storyTheme, html2canvasLoaded, coins, carbonSaved]);
+  }, [isShareModalOpen, storyTheme, html2canvasLoaded, coins, carbonSaved, completedQuests, chosenRoute]);
 
-  const handleExportPNG = () => {
-    if (!exportedImageUrl) {
-      triggerToast("กำลังเตรียมไฟล์รูปความละเอียดสูง โปรดกดอีกครั้งสักครู่...", "info");
-      generatePreviewImage();
-      return;
-    }
-    
+  const triggerDownload = (url) => {
     try {
       const link = document.createElement("a");
-      link.href = exportedImageUrl;
+      link.href = url;
       link.download = `cuverse_story_${storyTheme}.png`;
       document.body.appendChild(link);
       link.click();
@@ -307,8 +294,43 @@ export default function App() {
       triggerToast("💾 บันทึกรูปภาพกรีนการ์ดสำเร็จ!");
     } catch (err) {
       console.error("Direct browser download failed", err);
-      triggerToast("แตะค้างที่การ์ดภาพเพื่อดาวน์โหลดโดยตรงได้เลยครับ", "info");
+      triggerToast("กรุณาใช้นิ้วแตะค้างที่ตัวการ์ดเพื่อกดบันทึกโดยตรงครับ", "info");
     }
+  };
+
+  const handleExportPNG = () => {
+    if (!storyCardRef.current) return;
+
+    if (exportedImageUrl) {
+      triggerDownload(exportedImageUrl);
+      return;
+    }
+
+    // Force run html2canvas instantly if not pre-rendered yet
+    setGenerating(true);
+    triggerToast("⏳ กำลังสร้างและเตรียมไฟล์ดาวน์โหลด...", "info");
+
+    if (!window.html2canvas) {
+      triggerToast("❌ ระบบสร้างภาพขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้ง", "error");
+      setGenerating(false);
+      return;
+    }
+
+    window.html2canvas(storyCardRef.current, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: null,
+      logging: false
+    }).then(canvas => {
+      const imgData = canvas.toDataURL("image/png");
+      setExportedImageUrl(imgData);
+      setGenerating(false);
+      triggerDownload(imgData);
+    }).catch(err => {
+      console.error("On-demand generation failed", err);
+      setGenerating(false);
+      triggerToast("❌ เกิดข้อผิดพลาดในการสร้างไฟล์กรีนการ์ด", "error");
+    });
   };
 
   return (
