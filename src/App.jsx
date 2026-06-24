@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Compass, 
   MapPin, 
@@ -14,11 +14,13 @@ import {
   Info,
   ChevronRight,
   Sun,
-  X
+  X,
+  Share2,
+  Download,
+  Palette
 } from 'lucide-react';
 
 export default function App() {
-  // Navigation & Sub-Tabs State
   const [activeTab, setActiveTab] = useState('home'); // home, route, quests, wallet, guild
   const [activeQuestTab, setActiveQuestTab] = useState('daily'); // daily, classroom, lab, weekly
   
@@ -34,24 +36,90 @@ export default function App() {
   // Calculated Personal Clean Energy Saved (kWh)
   const personalEnergySaved = (carbonSaved * 1.5).toFixed(1);
 
-  // Interactive Notifications State
+  // Sharing Card Overlay state
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [storyTheme, setStoryTheme] = useState('emerald'); // emerald, cyberpunk, aurora, sunset, transparent
+  const [html2canvasLoaded, setHtml2canvasLoaded] = useState(false);
+  const storyCardRef = useRef(null);
+
+  useEffect(() => {
+    // Dynamic import of html2canvas via CDN
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    script.async = true;
+    script.onload = () => setHtml2canvasLoaded(true);
+    document.head.appendChild(script);
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
+
+  // Define energy values in kWh for each activity to show exact calculated values
+  const activityEnergyValues = {
+    r_walk: 0.35,
+    r_bike: 0.28,
+    r_pop: 0.18,
+    r_car: 0.0,
+    q_loop: 0.75,
+    q_refill: 0.30,
+    q_shade: 1.80,
+    q_proj: 2.70,
+    q_reset: 2.25,
+    q_ac: 1.50,
+    q_phantom: 3.30,
+    q_fume: 5.25,
+    q_freezer: 2.55,
+    q_streak: 7.50,
+    q_raid: 12.00
+  };
+
+  // Compute total energy saved strictly today
+  const calculateTodayEnergySaved = () => {
+    let total = 0;
+    if (chosenRoute && activityEnergyValues[chosenRoute]) {
+      total += activityEnergyValues[chosenRoute];
+    }
+    completedQuests.forEach(questId => {
+      if (activityEnergyValues[questId]) {
+        total += activityEnergyValues[questId];
+      }
+    });
+    return total.toFixed(2);
+  };
+
+  // Determine active badges based on player behavior today
+  const getTodayBadges = () => {
+    const badges = [];
+    if (chosenRoute === 'r_walk') badges.push({ emoji: '👟', label: 'Walk', desc: 'เดินเรียนผ่านสวนจามจุรี' });
+    if (chosenRoute === 'r_bike') badges.push({ emoji: '🚲', label: 'Bike', desc: 'ปั่นจักรยาน CU Bike' });
+    if (chosenRoute === 'r_pop') badges.push({ emoji: '🚌', label: 'EV Pop', desc: 'โดยสารรถป๊อบไฟฟ้า' });
+    
+    if (completedQuests.includes('q_loop')) badges.push({ emoji: '🍱', label: 'Bento', desc: 'คืนกล่องข้าวหมุนเวียน' });
+    if (completedQuests.includes('q_refill')) badges.push({ emoji: '💧', label: 'Water', desc: 'พกกระบอกน้ำลดพลาสติก' });
+    if (completedQuests.includes('q_proj') || completedQuests.includes('q_phantom')) badges.push({ emoji: '🔌', label: 'Patrol', desc: 'ปิดอุปกรณ์ไฟฟ้าห้องเรียน' });
+    if (completedQuests.includes('q_fume') || completedQuests.includes('q_freezer')) badges.push({ emoji: '🧪', label: 'Lab Duty', desc: 'คุมแล็บรักษ์พลังงาน' });
+
+    // Fallback if they haven't done anything today yet, show default beginner badges
+    if (badges.length === 0) {
+      badges.push({ emoji: '🎒', label: 'Cadet', desc: 'นิสิตผู้พิทักษ์คาร์บอน' });
+      badges.push({ emoji: '🌱', label: 'Eco', desc: 'เริ่มต้นรักษ์โลก' });
+    }
+    return badges;
+  };
+
   const [notifications, setNotifications] = useState([
     { id: 1, type: 'alert', text: '🚨 ภูตคาร์บอน (Carbon Ghost) ก่อกวน! ตึกวิศวฯ 3 พบการเปิดไฟทิ้งไว้ในวันหยุด!' },
     { id: 2, type: 'rare', text: '🌟 เควส Rare ระดับตำนานเปิดแล้ว: ปิดระบบแล็บชั้น 4 คณะวิทยาศาสตร์' }
   ]);
 
-  // Route Planning State
   const [startPoint, setStartPoint] = useState('eng3');
   const [endPoint, setEndPoint] = useState('library');
 
-  // VPP Trading States
   const [vppTradable, setVppTradable] = useState(120); // kW
   const [vppTraded, setVppTraded] = useState(false);
 
-  // Interactive Toast State
   const [toast, setToast] = useState(null);
   
-  // Custom transaction log for Wallet
   const [transactions, setTransactions] = useState([
     { id: 1, title: 'แลกกล่องข้าวหมุนเวียนสำเร็จ', change: -50, type: 'spend', date: 'วันนี้' },
     { id: 2, title: 'ภารกิจ Phantom Load Patrol สำเร็จ', change: 50, type: 'earn', date: 'วันนี้' },
@@ -63,7 +131,6 @@ export default function App() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // XP Progress and Levelling Logic
   const xpNeededForNextLevel = level * 100;
   
   const addXP = (amount) => {
@@ -109,7 +176,6 @@ export default function App() {
     addXP(quest.xp);
     setStreak(prev => prev + 1);
 
-    // Add transaction history
     const newTx = {
       id: Date.now(),
       title: `ทำเควส ${quest.title} สำเร็จ`,
@@ -122,7 +188,6 @@ export default function App() {
     triggerToast(`🎉 เควสสำเร็จ! รับ +${quest.reward} 🪙 และ +${quest.xp} XP!`);
   };
 
-  // Route details with rewards and impact calculations
   const routesData = [
     { id: 'r_walk', title: 'Walk via Chula Forest', desc: 'เดินผ่านพื้นที่ร่มรื่นใต้เงาไม้ใหญ่จามจุรี', time: '8 นาที', dist: '550m', carbon: '0g', coins: 20, isEco: true, color: 'emerald' },
     { id: 'r_bike', title: 'Bike via Green Lane', desc: 'ปั่นจักรยาน CU Bike เลียบทางเฉพาะสีเขียว', time: '3 นาที', dist: '600m', carbon: '4g', coins: 12, isEco: false, color: 'indigo' },
@@ -141,13 +206,12 @@ export default function App() {
     let textBonus = "";
 
     if (route.isEco) {
-      finalReward += 5; // Eco Best Bonus
+      finalReward += 5;
       textBonus = " + โบนัสความรักษ์โลก 5 🪙!";
       setStreak(prev => prev + 1);
     }
 
     setCoins(prev => prev + finalReward);
-    // Rough estimate of saving compared to motor vehicle (saving ~180g)
     const carbonDelta = +((180 - parseInt(route.carbon)) / 1000).toFixed(2);
     setCarbonSaved(prev => +(prev + Math.max(0, carbonDelta)).toFixed(2));
     addXP(30);
@@ -187,6 +251,30 @@ export default function App() {
     setTransactions([newTx, ...transactions]);
 
     triggerToast(`🎁 แลกสำเร็จ! รหัสสิทธิ์สแกนถูกเก็บลงหน้า Profile แล้ว`, 'success');
+  };
+
+  const handleExportPNG = () => {
+    if (!html2canvasLoaded) {
+      triggerToast("ระบบประมวลผลรูปภาพยังไม่พร้อม กรุณารอสักครู่", "info");
+      return;
+    }
+    if (storyCardRef.current) {
+      window.html2canvas(storyCardRef.current, {
+        scale: 3, // Premium quality render
+        useCORS: true,
+        backgroundColor: null
+      }).then(canvas => {
+        const image = canvas.toDataURL("image/png");
+        const link = document.createElement("a");
+        link.href = image;
+        link.download = `cuverse_story_${storyTheme}.png`;
+        link.click();
+        triggerToast("💾 บันทึกกรีนการ์ดมินิมอลสำเร็จ! พร้อมแชร์ลง IG Story แล้ว");
+      }).catch(err => {
+        console.error("Canvas export failed", err);
+        triggerToast("เกิดข้อผิดพลาดในการเซฟภาพ กรุณาลองใหม่อีกครั้ง", "error");
+      });
+    }
   };
 
   return (
@@ -292,6 +380,18 @@ export default function App() {
                   </div>
                 </div>
               </div>
+
+              {/* Strava Share Dynamic Story Generator Trigger */}
+              <button
+                onClick={() => setIsShareModalOpen(true)}
+                className="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white p-3.5 rounded-2xl border border-emerald-500/25 shadow-md flex items-center justify-between transition-all font-black text-[11px] uppercase tracking-wide group"
+              >
+                <span className="flex items-center gap-2">
+                  <Share2 className="w-4 h-4 text-emerald-300 group-hover:scale-110 transition-transform" />
+                  แชร์กรีนการ์ดวันนี้ลง Story (Strava Style)
+                </span>
+                <span className="bg-white/20 px-2 py-0.5 rounded text-[9px]">READY 📲</span>
+              </button>
 
               {/* Eco Alert Bubble */}
               {notifications.length > 0 && (
@@ -760,81 +860,54 @@ export default function App() {
                 </div>
 
                 <div className="space-y-2.5">
-                  {/* Guild Rank 1: Engineering */}
-                  {/* Calculation: Saving 24%, Clean Energy 55%, Participation 85% -> RES = (50x0.24) + (30x0.55) + (20x0.85) = 12 + 16.5 + 17 = 45.5 */}
-                  <div className="bg-gradient-to-r from-emerald-50 to-emerald-50/20 border border-emerald-100 rounded-2xl p-3">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-700 font-black text-xs flex items-center justify-center">
-                          👑 1
-                        </div>
-                        <div>
-                          <h5 className="text-[11px] font-bold text-slate-800">วิศวกรรมศาสตร์ (ENG)</h5>
-                          <p className="text-[9px] text-slate-500">พลังสะอาดสะสมลดได้: <span className="font-extrabold text-emerald-600">2,450 kWh</span></p>
-                        </div>
+                  {/* Guild Rank 1 */}
+                  <div className="bg-gradient-to-r from-emerald-50 to-emerald-50/20 border border-emerald-100 rounded-2xl p-3 flex justify-between items-start">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-700 font-black text-xs flex items-center justify-center">
+                        👑 1
                       </div>
-                      <div className="text-right">
-                        <span className="text-xs font-black text-emerald-700 block">45.5 RES</span>
-                        <span className="text-[8px] text-slate-400">โบนัสกิลด์ x1.2</span>
+                      <div>
+                        <h5 className="text-[11px] font-bold text-slate-800">วิศวกรรมศาสตร์ (ENG-Guild)</h5>
+                        <p className="text-[9px] text-slate-500">พลังสะอาดสะสมลดได้: <span className="font-extrabold text-emerald-600">2,450 kWh</span></p>
                       </div>
                     </div>
-                    {/* Visual RES sub-metrics values */}
-                    <div className="mt-2 pt-2 border-t border-slate-100 flex justify-between text-[8px] font-mono text-slate-500">
-                      <span>ประหยัดไฟ: 24%</span>
-                      <span>หมุนเวียน: 55%</span>
-                      <span>ส่วนร่วม: 85%</span>
+                    <div className="text-right">
+                      <span className="text-xs font-black text-emerald-700 block">45.5 RES</span>
+                      <span className="text-[8px] text-slate-400">แชมป์ปิดสวิตช์ห้อง</span>
                     </div>
                   </div>
 
-                  {/* Guild Rank 2: Science */}
-                  {/* Calculation: Saving 18%, Clean Energy 60%, Participation 75% -> RES = (50x0.18) + (30x0.6) + (20x0.75) = 9 + 18 + 15 = 42.0 */}
-                  <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 text-slate-700 font-black text-xs flex items-center justify-center">
-                          2
-                        </div>
-                        <div>
-                          <h5 className="text-[11px] font-bold text-slate-800">วิทยาศาสตร์ (SCI)</h5>
-                          <p className="text-[9px] text-slate-500">พลังสะอาดสะสมลดได้: <span className="font-semibold text-slate-700">1,980 kWh</span></p>
-                        </div>
+                  {/* Guild Rank 2 */}
+                  <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3 flex justify-between items-start">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 text-slate-700 font-black text-xs flex items-center justify-center">
+                        2
                       </div>
-                      <div className="text-right">
-                        <span className="text-xs font-black text-slate-700 block">42.0 RES</span>
-                        <span className="text-[8px] text-slate-400">โบนัสกิลด์ x1.1</span>
+                      <div>
+                        <h5 className="text-[11px] font-bold text-slate-800">วิทยาศาสตร์ (SCI-Guild)</h5>
+                        <p className="text-[9px] text-slate-500">พลังสะอาดสะสมลดได้: <span className="font-semibold text-slate-700">1,980 kWh</span></p>
                       </div>
                     </div>
-                    {/* Visual RES sub-metrics values */}
-                    <div className="mt-2 pt-2 border-t border-slate-100/60 flex justify-between text-[8px] font-mono text-slate-400">
-                      <span>ประหยัดไฟ: 18%</span>
-                      <span>หมุนเวียน: 60%</span>
-                      <span>ส่วนร่วม: 75%</span>
+                    <div className="text-right">
+                      <span className="text-xs font-black text-slate-700 block">42.0 RES</span>
+                      <span className="text-[8px] text-slate-400">แชมป์ดูแลห้องแล็บ</span>
                     </div>
                   </div>
 
-                  {/* Guild Rank 3: Architecture */}
-                  {/* Calculation: Saving 15%, Clean Energy 40%, Participation 90% -> RES = (50x0.15) + (30x0.4) + (20x0.9) = 7.5 + 12 + 18 = 37.5 */}
-                  <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 text-slate-700 font-black text-xs flex items-center justify-center">
-                          3
-                        </div>
-                        <div>
-                          <h5 className="text-[11px] font-bold text-slate-800">สถาปัตยกรรมศาสตร์ (ARC)</h5>
-                          <p className="text-[9px] text-slate-500">พลังสะอาดสะสมลดได้: <span className="font-semibold text-slate-700">1,420 kWh</span></p>
-                        </div>
+                  {/* Guild Rank 3 */}
+                  <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3 flex justify-between items-start">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 text-slate-700 font-black text-xs flex items-center justify-center">
+                        3
                       </div>
-                      <div className="text-right">
-                        <span className="text-xs font-black text-slate-500 block">37.5 RES</span>
-                        <span className="text-[8px] text-slate-400">โบนัสกิลด์ x1.0</span>
+                      <div>
+                        <h5 className="text-[11px] font-bold text-slate-800">สถาปัตยกรรมศาสตร์ (ARC)</h5>
+                        <p className="text-[9px] text-slate-500">พลังสะอาดสะสมลดได้: <span className="font-semibold text-slate-700">1,420 kWh</span></p>
                       </div>
                     </div>
-                    {/* Visual RES sub-metrics values */}
-                    <div className="mt-2 pt-2 border-t border-slate-100/60 flex justify-between text-[8px] font-mono text-slate-400">
-                      <span>ประหยัดไฟ: 15%</span>
-                      <span>หมุนเวียน: 40%</span>
-                      <span>ส่วนร่วม: 90%</span>
+                    <div className="text-right">
+                      <span className="text-xs font-black text-slate-500 block">37.5 RES</span>
+                      <span className="text-[8px] text-slate-400">แชมป์เดินประหยัดไฟ</span>
                     </div>
                   </div>
                 </div>
@@ -910,6 +983,139 @@ export default function App() {
         </div>
 
       </div>
+
+      {/* STRARVA-STYLE GORGEOUS GREEN IMPACT STORY MODAL OVERLAY */}
+      {isShareModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[999] p-4 select-none overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-[32px] w-full max-w-[360px] p-5 relative flex flex-col gap-4 animate-scaleUp">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-center">
+              <h3 className="text-white text-xs font-black tracking-wide flex items-center gap-1">
+                <Share2 className="w-4 h-4 text-emerald-400" /> ECO-STORY GENERATOR
+              </h3>
+              <button 
+                onClick={() => setIsShareModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-white rounded-full bg-slate-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Theme Selector Palette */}
+            <div className="flex justify-between items-center bg-slate-950/50 p-2 rounded-xl border border-slate-800/80">
+              <span className="text-[9px] text-slate-400 font-bold flex items-center gap-1">
+                <Palette className="w-3.5 h-3.5 text-pink-400" /> เลือกธีมพื้นหลัง:
+              </span>
+              <div className="flex gap-1.5">
+                {['emerald', 'cyberpunk', 'aurora', 'sunset', 'transparent'].map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setStoryTheme(t)}
+                    title={t === 'transparent' ? 'พื้นหลังโปร่งใส' : `ธีม ${t}`}
+                    className={`w-5 h-5 rounded-full border ${
+                      t === 'emerald' ? 'bg-emerald-600 border-emerald-400' :
+                      t === 'cyberpunk' ? 'bg-gradient-to-tr from-pink-600 to-rose-400 border-pink-400' :
+                      t === 'aurora' ? 'bg-gradient-to-tr from-indigo-700 to-cyan-500 border-indigo-400' :
+                      t === 'sunset' ? 'bg-gradient-to-tr from-amber-600 to-yellow-400 border-amber-400' :
+                      'bg-slate-800 border-slate-400 border-dashed relative after:content-[""] after:absolute after:inset-1 after:border-t after:border-rose-400 after:rotate-45'
+                    } ${storyTheme === t ? 'scale-125 ring-2 ring-white/50' : 'opacity-70'}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* REAL STORY CARD DOM CONTAINER (Compact 1:1 or neatly bounded Portrait) */}
+            <div 
+              ref={storyCardRef}
+              id="story-share-card"
+              className={`w-full h-[350px] rounded-[28px] relative p-5 overflow-hidden flex flex-col justify-between text-white transition-all duration-300 ${
+                storyTheme === 'transparent' ? 'bg-transparent border-0 shadow-none' :
+                storyTheme === 'emerald' ? 'bg-gradient-to-br from-emerald-950 via-teal-900 to-slate-950 border border-emerald-500/25 shadow-2xl' :
+                storyTheme === 'cyberpunk' ? 'bg-gradient-to-br from-pink-950 via-rose-900 to-slate-950 border border-pink-500/25 shadow-2xl' :
+                storyTheme === 'aurora' ? 'bg-gradient-to-br from-slate-950 via-indigo-950 to-cyan-950 border border-cyan-500/25 shadow-2xl' :
+                'bg-gradient-to-br from-amber-950 via-orange-950 to-slate-950 border border-amber-500/25 shadow-2xl'
+              }`}
+            >
+              {/* Background ambient watermarks (Only visible when not using transparent mode) */}
+              {storyTheme !== 'transparent' && (
+                <>
+                  <div className="absolute right-[-30px] top-[-30px] w-48 h-48 bg-white/5 rounded-full blur-2xl animate-pulse" />
+                  <div className="absolute left-[-20px] bottom-[-20px] w-40 h-40 bg-emerald-500/5 rounded-full blur-2xl" />
+                </>
+              )}
+
+              {/* Story Card Header with minimalist CUVERSE branding */}
+              <div className="flex justify-between items-center z-10">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping"></span>
+                  <span className="text-xs font-black tracking-widest uppercase font-mono">
+                    CU<span className="text-emerald-400">VERSE</span>
+                  </span>
+                </div>
+                <span className="text-[8px] bg-white/10 backdrop-blur-sm px-2 py-0.5 rounded-full text-slate-300 font-mono">
+                  STREAK: {streak} DAYS
+                </span>
+              </div>
+
+              {/* Story Center Metrics Wrap (Clean & Balanced) */}
+              <div className="space-y-1.5 z-10 my-auto text-center">
+                <p className="text-[8px] text-slate-400 uppercase font-bold tracking-widest">
+                  ⚡ พลังงานลดโลกร้อนวันนี้
+                </p>
+                <h2 className="text-4xl font-black tracking-tight text-emerald-300 drop-shadow-md">
+                  {calculateTodayEnergySaved()} <span className="text-base font-light text-white">kWh</span>
+                </h2>
+                <p className="text-[9px] text-slate-400">
+                  เทียบเท่าการประหยัดคาร์บอน <span className="font-extrabold text-white">{carbonSaved.toFixed(1)} kg</span>
+                </p>
+              </div>
+
+              {/* Dynamic Action Badge Stamps Row (Prominent Highlighted Emojis) */}
+              <div className="z-10 bg-black/20 backdrop-blur-sm rounded-2xl p-2 border border-white/5 space-y-1">
+                <div className="flex justify-center gap-4 py-1">
+                  {getTodayBadges().map((badge, idx) => (
+                    <div 
+                      key={idx}
+                      className="flex flex-col items-center gap-0.5 hover:scale-110 transition-transform"
+                    >
+                      <span className="text-3xl drop-shadow-lg filter saturate-125 select-none animate-bounce" style={{ animationDelay: `${idx * 150}ms` }}>
+                        {badge.emoji}
+                      </span>
+                      <span className="text-[8px] font-bold text-slate-400 tracking-tighter uppercase font-mono">
+                        {badge.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Story Card Footer branding */}
+              <div className="flex justify-between items-center pt-2 border-t border-white/5 z-10 text-[8px] text-slate-500 font-mono">
+                <span>📍 CHULALONGKORN UNIV.</span>
+                <span className="text-emerald-400 font-bold">13.7367° N, 100.5331° E</span>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={handleExportPNG}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-black text-[10.5px] flex items-center justify-center gap-1 shadow-md transition-colors"
+              >
+                <Download className="w-4 h-4" /> ดาวน์โหลด PNG
+              </button>
+              <button
+                onClick={() => setIsShareModalOpen(false)}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-4 rounded-xl font-bold text-[10.5px] transition-colors"
+              >
+                ปิดหน้าต่าง
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
