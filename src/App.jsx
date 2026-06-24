@@ -21,7 +21,11 @@ import {
   ShieldCheck,
   Sun,
   X,
-  Droplet
+  Droplet,
+  Calculator,
+  Percent,
+  Sliders,
+  Award as Trophy
 } from 'lucide-react';
 
 export default function App() {
@@ -54,7 +58,12 @@ export default function App() {
 
   // Interactive Toast State
   const [toast, setToast] = useState(null);
-  
+
+  // Live Simulator States for user custom testing (Image 2 logic)
+  const [simSaving, setSimSaving] = useState(20); // 20% saving default
+  const [simCleanEnergy, setSimCleanEnergy] = useState(50); // 50% clean energy usage default
+  const [simParticipation, setSimParticipation] = useState(80); // 80% student participation default
+
   // Custom transaction log for Wallet
   const [transactions, setTransactions] = useState([
     { id: 1, title: 'แลกกล่องข้าวหมุนเวียนสำเร็จ', change: -50, type: 'spend', date: 'วันนี้' },
@@ -67,7 +76,6 @@ export default function App() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // XP Progress and Levelling Logic
   const xpNeededForNextLevel = level * 100;
   
   const addXP = (amount) => {
@@ -82,7 +90,6 @@ export default function App() {
     setLevel(newLevel);
   };
 
-  // Interactive Quest Lists
   const questsData = {
     daily: [
       { id: 'q_loop', title: 'Loop Breaker', desc: 'คืนกล่องข้าวหมุนเวียนผ่านตู้อัจฉริยะในโรงอาหาร', reward: 15, xp: 30, carbon: 0.5, rarity: 'Common', icon: '🍱' },
@@ -200,27 +207,14 @@ export default function App() {
       {/* LEFT COLUMN: Project branding and info */}
       <div className="max-w-md text-white space-y-4 px-4">
         <div className="inline-flex items-center gap-2 bg-pink-500/10 border border-pink-500/20 text-pink-400 px-3 py-1.5 rounded-full text-xs font-semibold">
-          <Sparkles className="w-3.5 h-3.5" /> Hackathon Prototype v2.5 (Playable)
+          <Sparkles className="w-3.5 h-3.5" /> Hackathon Prototype v2.6 (RES Engine)
         </div>
         <h2 className="text-3xl font-black tracking-tight leading-tight bg-gradient-to-r from-pink-500 via-rose-400 to-emerald-400 bg-clip-text text-transparent">
           CU Eco-Verse
         </h2>
         <p className="text-sm font-medium text-slate-300 leading-relaxed">
-          เปลี่ยนไอเดียด้านระบบประหยัดพลังงานที่ซับซ้อนให้กลายเป็น **"เกม RPG บนโลกจริง"** สะสม Eco-Coins ลดคาร์บอนฟุตพริ้นท์จริงผ่านแอปจำลองบนสมาร์ตโฟนของนิสิตทุกคน
+          เปลี่ยนระบบประหยัดพลังงานที่ซับซ้อนให้กลายเป็น **"เกม RPG บนโลกจริง"** พร้อมการคิดคะแนนความยั่งยืนด้วยสูตร **Renewable Energy Score (RES)** ตามเกณฑ์การประเมินของจุฬาฯ
         </p>
-
-        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-2 text-xs">
-          <h4 className="font-bold text-slate-200 flex items-center gap-1.5 text-rose-400">
-            💡 แถบเมนูด้านล่างสุดรองรับ:
-          </h4>
-          <ul className="space-y-1.5 text-slate-400 list-disc list-inside">
-            <li><span className="text-pink-400 font-semibold">หน้าแรก</span> - ตรวจเช็คค่าสถานะสะสมและมาสคอต</li>
-            <li><span className="text-pink-400 font-semibold">สแกนเส้นทาง</span> - ค้นหาและจำลองแผนที่เดินทาง</li>
-            <li><span className="text-pink-400 font-semibold">เควส</span> - หมวดหมู่เควสรายวัน เรียน แล็บ และจำลองการปิดอุปกรณ์</li>
-            <li><span className="text-pink-400 font-semibold">กระเป๋าเงิน</span> - กระเป๋าจัดเก็บและแลกของรางวัลจำลอง</li>
-            <li><span className="text-pink-400 font-semibold">อันดับคณะ</span> - แสดงตารางกิลด์และระบบซื้อขายไฟ VPP</li>
-          </ul>
-        </div>
       </div>
 
       {/* RIGHT COLUMN: Mobile simulator container */}
@@ -758,76 +752,100 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Leaderboard rankings */}
+              {/* Leaderboard rankings adjusted to use exact formula calculations */}
               <div className="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-xs space-y-3.5">
                 <div className="flex justify-between items-center">
                   <h4 className="text-xs font-black text-slate-800 tracking-tight flex items-center gap-1">
-                    <Users className="w-4 h-4 text-pink-600" /> ตารางคะแนนและกิลด์ระหว่างคณะ (Guilds)
+                    <Trophy className="w-4 h-4 text-pink-600 animate-pulse" /> Faculty Leaderboard (RES-Rank)
                   </h4>
                   <span className="text-[9px] text-slate-400 font-semibold">ฤดูกาลที่ 1</span>
                 </div>
 
                 <div className="space-y-2.5">
-                  {/* Guild Rank 1 */}
-                  <div className="bg-gradient-to-r from-pink-50 to-rose-50 border border-pink-100 rounded-2xl p-3 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-full bg-pink-100 border border-pink-200 text-pink-600 font-black text-xs flex items-center justify-center">
-                        👑 1
+                  {/* Guild Rank 1: Engineering */}
+                  {/* Calculation: Saving 24%, Clean Energy 55%, Participation 85% -> RES = 45.5 */}
+                  <div className="bg-gradient-to-r from-emerald-50 to-emerald-50/20 border border-emerald-100 rounded-2xl p-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-700 font-black text-xs flex items-center justify-center">
+                          👑 1
+                        </div>
+                        <div>
+                          <h5 className="text-[11px] font-bold text-slate-800">วิศวกรรมศาสตร์ (ENG)</h5>
+                          <p className="text-[9px] text-slate-500">แชมป์ปิดสวิตช์ห้องเรียน</p>
+                        </div>
                       </div>
-                      <div>
-                        <h5 className="text-[11px] font-bold text-slate-800">วิศวกรรมศาสตร์ (ENG-Guild)</h5>
-                        <p className="text-[9px] text-slate-500">
-                          พลังงานสะอาดที่ลดได้: <span className="font-bold text-slate-700">2,450 kWh</span>
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[10px] font-black text-pink-600 block">x1.2 โบนัส</span>
-                      <span className="text-[8px] text-slate-400">แชมป์ปิดสวิตช์ห้อง</span>
-                    </div>
-                  </div>
-
-                  {/* Guild Rank 2 */}
-                  <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 text-slate-700 font-black text-xs flex items-center justify-center">
-                        2
-                      </div>
-                      <div>
-                        <h5 className="text-[11px] font-bold text-slate-800">วิทยาศาสตร์ (SCI-Guild)</h5>
-                        <p className="text-[9px] text-slate-500">
-                          พลังงานสะอาดที่ลดได้: <span className="font-bold text-slate-700">1,980 kWh</span>
-                        </p>
+                      <div className="text-right">
+                        <span className="text-xs font-black text-emerald-700 block">45.5 RES</span>
+                        <span className="text-[8px] text-slate-400">ตัวคูณ x1.2</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] font-bold text-slate-700 block">x1.1 โบนัส</span>
-                      <span className="text-[8px] text-slate-400">แชมป์ดูแลห้องแล็บ</span>
+                    {/* Visual RES sub-metrics values */}
+                    <div className="mt-2 pt-2 border-t border-slate-100 flex justify-between text-[8px] font-mono text-slate-500">
+                      <span>ประหยัดไฟ: 24% (x0.5)</span>
+                      <span>หมุนเวียน: 55% (x0.3)</span>
+                      <span>ส่วนร่วม: 85% (x0.2)</span>
                     </div>
                   </div>
 
-                  {/* Guild Rank 3 */}
-                  <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 text-slate-700 font-black text-xs flex items-center justify-center">
-                        3
+                  {/* Guild Rank 2: Science */}
+                  {/* Calculation: Saving 18%, Clean Energy 60%, Participation 75% -> RES = 42.0 */}
+                  <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 text-slate-700 font-black text-xs flex items-center justify-center">
+                          2
+                        </div>
+                        <div>
+                          <h5 className="text-[11px] font-bold text-slate-800">วิทยาศาสตร์ (SCI)</h5>
+                          <p className="text-[9px] text-slate-500">แชมป์ดูแลพลังงานห้องแล็บ</p>
+                        </div>
                       </div>
-                      <div>
-                        <h5 className="text-[11px] font-bold text-slate-800">สถาปัตยกรรมศาสตร์ (ARC)</h5>
-                        <p className="text-[9px] text-slate-500">
-                          พลังงานสะอาดที่ลดได้: <span className="font-bold text-slate-700">1,420 kWh</span>
-                        </p>
+                      <div className="text-right">
+                        <span className="text-xs font-black text-slate-700 block">42.0 RES</span>
+                        <span className="text-[8px] text-slate-400">ตัวคูณ x1.1</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] font-bold text-slate-500 block">x1.0 โบนัส</span>
-                      <span className="text-[8px] text-slate-400">แชมป์เดินประหยัดไฟ</span>
+                    {/* Visual RES sub-metrics values */}
+                    <div className="mt-2 pt-2 border-t border-slate-100/60 flex justify-between text-[8px] font-mono text-slate-400">
+                      <span>ประหยัดไฟ: 18% (x0.5)</span>
+                      <span>หมุนเวียน: 60% (x0.3)</span>
+                      <span>ส่วนร่วม: 75% (x0.2)</span>
+                    </div>
+                  </div>
+
+                  {/* Guild Rank 3: Architecture */}
+                  {/* Calculation: Saving 15%, Clean Energy 40%, Participation 90% -> RES = 37.5 */}
+                  <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 text-slate-700 font-black text-xs flex items-center justify-center">
+                          3
+                        </div>
+                        <div>
+                          <h5 className="text-[11px] font-bold text-slate-800">สถาปัตยกรรมศาสตร์ (ARC)</h5>
+                          <p className="text-[9px] text-slate-500">แชมป์สแกนเดินเรียนลดคาร์บอน</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-black text-slate-500 block">37.5 RES</span>
+                        <span className="text-[8px] text-slate-400">ตัวคูณ x1.0</span>
+                      </div>
+                    </div>
+                    {/* Visual RES sub-metrics values */}
+                    <div className="mt-2 pt-2 border-t border-slate-100/60 flex justify-between text-[8px] font-mono text-slate-400">
+                      <span>ประหยัดไฟ: 15% (x0.5)</span>
+                      <span>หมุนเวียน: 40% (x0.3)</span>
+                      <span>ส่วนร่วม: 90% (x0.2)</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 text-[9px] text-slate-500 leading-normal">
-                  💡 <span className="font-extrabold text-slate-700">กติกาการแข่งแบบร่วมมือ:</span> ยิ่งคนในคณะร่วมใจทำเควสและเดินเรียนเยอะขึ้น ตัวคูณ Multiplier ของคณะจะยิ่งสูง ซึ่งจะช่วยเปลี่ยนโซลาร์พลังงานเป็นเหรียญเงินกิจกรรมคณะได้มากขึ้นเท่านั้น!
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 text-[9px] text-slate-500 leading-normal flex items-start gap-1.5">
+                  <span className="text-emerald-600 text-base shrink-0">💡</span>
+                  <p>
+                    <span className="font-extrabold text-slate-700">กลไกการปรับเปลี่ยนพฤทีพฤติกรรม:</span> ยิ่งคนในกิลด์ช่วยกันกดยืนยันปิดแอร์ห้องเรียน หรือเพิ่มสัดส่วนพลังงาน Solar-Share คณะคุณจะได้รับคะแนน **RES สูงสุด** ประจำสัปดาห์!
+                  </p>
                 </div>
               </div>
 
