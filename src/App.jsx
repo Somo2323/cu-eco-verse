@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Compass, 
   MapPin, 
@@ -71,23 +71,41 @@ export default function App() {
     return total.toFixed(2);
   };
 
-  const getTodayBadges = () => {
-    const badges = [];
-    if (chosenRoute === 'r_walk') badges.push({ emoji: '👟', label: 'Walk' });
-    if (chosenRoute === 'r_bike') badges.push({ emoji: '🚲', label: 'Bike' });
-    if (chosenRoute === 'r_pop') badges.push({ emoji: '🚌', label: 'EV Pop' });
+  const getActiveMapPins = () => {
+    const pins = [];
     
-    if (completedQuests.includes('q_loop')) badges.push({ emoji: '🍱', label: 'Bento' });
-    if (completedQuests.includes('q_refill')) badges.push({ emoji: '💧', label: 'Water' });
-    if (completedQuests.includes('q_proj') || completedQuests.includes('q_phantom')) badges.push({ emoji: '🔌', label: 'Patrol' });
-
-    if (badges.length === 0) {
-      badges.push({ emoji: '👟', label: 'Walk' });
-      badges.push({ emoji: '🍱', label: 'Bento' });
-      badges.push({ emoji: '💧', label: 'Water' });
-      badges.push({ emoji: '🔌', label: 'Patrol' });
+    // Check route action
+    if (chosenRoute === 'r_walk') {
+      pins.push({ id: 'walk', emoji: '👟', label: 'CU Forest', x: 260, y: 500 });
+    } else if (chosenRoute === 'r_bike') {
+      pins.push({ id: 'bike', emoji: '🚲', label: 'Green Lane', x: 190, y: 480 });
+    } else if (chosenRoute === 'r_pop') {
+      pins.push({ id: 'pop', emoji: '🚌', label: 'EV Route', x: 380, y: 490 });
     }
-    return badges.slice(0, 4);
+
+    // Check completed quests and place them on specific campus coordinates
+    if (completedQuests.includes('q_loop')) {
+      pins.push({ id: 'bento', emoji: '🍱', label: 'Pra Keaw', x: 380, y: 460 });
+    }
+    if (completedQuests.includes('q_refill')) {
+      pins.push({ id: 'water', emoji: '💧', label: 'Central Lib', x: 480, y: 520 });
+    }
+    if (completedQuests.includes('q_proj') || completedQuests.includes('q_reset') || completedQuests.includes('q_ac')) {
+      pins.push({ id: 'patrol', emoji: '🔌', label: 'ENG 3', x: 120, y: 520 });
+    }
+    if (completedQuests.includes('q_phantom') || completedQuests.includes('q_fume') || completedQuests.includes('q_freezer')) {
+      pins.push({ id: 'lab', emoji: '🧪', label: 'Sci Lab', x: 190, y: 440 });
+    }
+
+    // Default fallback pins so the map always looks visually engaging
+    if (pins.length === 0) {
+      pins.push({ id: 'walk', emoji: '👟', label: 'CU Forest', x: 260, y: 500 });
+      pins.push({ id: 'bento', emoji: '🍱', label: 'Pra Keaw', x: 380, y: 460 });
+      pins.push({ id: 'water', emoji: '💧', label: 'Central Lib', x: 480, y: 520 });
+      pins.push({ id: 'patrol', emoji: '🔌', label: 'ENG 3', x: 120, y: 520 });
+    }
+
+    return pins.slice(0, 4); // Limit to top 4 active icons to maintain card clarity
   };
 
   const [notifications, setNotifications] = useState([
@@ -251,20 +269,19 @@ export default function App() {
     ctx.closePath();
   };
 
-  // Pure native HTML5 Canvas drawing representing image_88f30b.png precisely
   const renderCanvasImage = () => {
     const canvas = document.createElement('canvas');
     canvas.width = 600;
-    canvas.height = 680;
+    canvas.height = 500;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     // Clear Canvas
-    ctx.clearRect(0, 0, 600, 680);
+    ctx.clearRect(0, 0, 600, 500);
 
     // 1. Draw Card Background with appropriate gradients
     if (storyTheme !== 'transparent') {
-      const grad = ctx.createLinearGradient(0, 0, 600, 680);
+      const grad = ctx.createLinearGradient(0, 0, 600, 500);
       if (storyTheme === 'cyberpunk') {
         grad.addColorStop(0, '#4a0422');
         grad.addColorStop(0.5, '#210515');
@@ -283,7 +300,7 @@ export default function App() {
         grad.addColorStop(1, '#080301');
       }
       ctx.fillStyle = grad;
-      drawRoundedRect(ctx, 0, 0, 600, 680, 48);
+      drawRoundedRect(ctx, 0, 0, 600, 500, 48);
       ctx.fill();
     }
 
@@ -291,7 +308,7 @@ export default function App() {
     // Small emerald sphere
     ctx.fillStyle = '#10B981';
     ctx.beginPath();
-    ctx.arc(60, 65, 11, 0, Math.PI * 2);
+    ctx.arc(60, 45, 11, 0, Math.PI * 2);
     ctx.fill();
 
     // CU Text
@@ -299,84 +316,144 @@ export default function App() {
     ctx.font = '900 24px sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText('CU', 80, 65);
+    ctx.fillText('CU', 80, 45);
 
     // VERSE Text
     ctx.fillStyle = '#10B981';
-    ctx.fillText('VERSE', 115, 65);
+    ctx.fillText('VERSE', 115, 45);
 
     // 3. Streak Pill Badge (Top-right)
     ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-    drawRoundedRect(ctx, 420, 45, 140, 36, 18);
+    drawRoundedRect(ctx, 420, 28, 140, 34, 17);
     ctx.fill();
 
     ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
     ctx.font = 'bold 12px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`STREAK: ${streak} DAYS`, 490, 63);
+    ctx.fillText(`STREAK: ${streak} DAYS`, 490, 45);
 
     // 4. Center Metrics Block
     // Spark icon & Subtitle
     ctx.fillStyle = '#f59e0b';
-    ctx.font = '16px sans-serif';
+    ctx.font = '14px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('⚡ พลังงานลดโลกร้อนวันนี้', 300, 220);
+    ctx.fillText('⚡ พลังงานลดโลกร้อนวันนี้', 300, 130);
 
     // Main Value (Energy kWh)
     const valText = calculateTodayEnergySaved();
-    ctx.font = '900 76px sans-serif';
+    ctx.font = '900 68px sans-serif';
     const valW = ctx.measureText(valText).width;
 
-    ctx.font = '300 30px sans-serif';
+    ctx.font = '300 24px sans-serif';
     const unitW = ctx.measureText(' kWh').width;
 
     const startX = 300 - ((valW + unitW) / 2);
 
     ctx.fillStyle = '#10B981';
-    ctx.font = '900 76px sans-serif';
+    ctx.font = '900 68px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(valText, startX, 310);
+    ctx.fillText(valText, startX, 200);
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = '300 30px sans-serif';
-    ctx.fillText(' kWh', startX + valW, 298);
+    ctx.font = '300 24px sans-serif';
+    ctx.fillText(' kWh', startX + valW, 192);
 
     // Carbon Savings Detail
     ctx.fillStyle = '#94a3b8';
-    ctx.font = 'bold 16px sans-serif';
+    ctx.font = 'bold 14px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`เทียบเท่าการประหยัดคาร์บอน ${carbonSaved.toFixed(1)} kg`, 300, 365);
+    ctx.fillText(`เทียบเท่าการประหยัดคาร์บอน ${carbonSaved.toFixed(1)} kg`, 300, 245);
 
-    // 5. Badges Panel
+    // Map bounds: x from 40 to 560, y from 280 to 440 (height: 160px)
+    const mapY = 280;
+    const mapH = 160;
+    
+    // Draw map background glass board
     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-    drawRoundedRect(ctx, 40, 430, 520, 140, 28);
+    drawRoundedRect(ctx, 40, mapY, 520, mapH, 24);
     ctx.fill();
 
-    const badges = getTodayBadges();
-    const colW = 520 / 4;
-    badges.forEach((b, idx) => {
-      const colX = 40 + (idx * colW) + (colW / 2);
+    // Draw Grid Lines (Neon green/teal blueprint styled)
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.08)';
+    ctx.lineWidth = 1;
+    for (let gx = 60; gx < 540; gx += 30) {
+      ctx.beginPath();
+      ctx.moveTo(gx, mapY + 10);
+      ctx.lineTo(gx, mapY + mapH - 10);
+      ctx.stroke();
+    }
+    for (let gy = mapY + 20; gy < mapY + mapH; gy += 20) {
+      ctx.beginPath();
+      ctx.moveTo(50, gy);
+      ctx.lineTo(550, gy);
+      ctx.stroke();
+    }
+
+    // Draw Pathway Lines (Nodes connectivity)
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.25)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(120, mapY + 110); // ENG 3
+    ctx.lineTo(190, mapY + 50);  // Sci Lab
+    ctx.lineTo(260, mapY + 95);  // CU Forest
+    ctx.lineTo(380, mapY + 65);  // Pra Keaw
+    ctx.lineTo(480, mapY + 115); // Central Lib
+    ctx.stroke();
+    ctx.setLineDash([]); // Reset dash
+
+    // Draw static connecting roads
+    ctx.strokeStyle = 'rgba(6, 182, 212, 0.15)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(120, mapY + 110);
+    ctx.lineTo(260, mapY + 95);
+    ctx.lineTo(480, mapY + 115);
+    ctx.stroke();
+
+    // Render Pin locations and active emojis
+    const pins = getActiveMapPins();
+    pins.forEach(pin => {
+      const px = pin.x;
+      const py = mapY + (pin.y - 380) * (mapH / 200); // Adjusted relative y scaled perfectly for 160px height
+
+      // Pulsing Green Glow underneath active pin
+      const pulseGrad = ctx.createRadialGradient(px, py, 2, px, py, 24);
+      pulseGrad.addColorStop(0, 'rgba(16, 185, 129, 0.45)');
+      pulseGrad.addColorStop(0.4, 'rgba(16, 185, 129, 0.15)');
+      pulseGrad.addColorStop(1, 'rgba(16, 185, 129, 0)');
+      ctx.fillStyle = pulseGrad;
+      ctx.beginPath();
+      ctx.arc(px, py, 24, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Mini glowing dot indicator
+      ctx.fillStyle = '#10B981';
+      ctx.beginPath();
+      ctx.arc(px, py + 8, 4, 0, Math.PI * 2);
+      ctx.fill();
 
       // Emoji Symbol
-      ctx.font = '42px sans-serif';
+      ctx.font = '30px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(b.emoji, colX, 492);
+      ctx.textBaseline = 'middle';
+      ctx.fillText(pin.emoji, px, py - 10);
 
-      // Label Text
+      // Label Text for Map Locations
       ctx.fillStyle = '#94a3b8';
-      ctx.font = 'bold 11px sans-serif';
-      ctx.fillText(b.label.toUpperCase(), colX, 532);
+      ctx.font = 'bold 9px monospace';
+      ctx.fillText(pin.label.toUpperCase(), px, py + 20);
     });
 
     // 6. Footer (Geotag)
     ctx.fillStyle = '#64748b';
-    ctx.font = 'bold 12px sans-serif';
+    ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText('📍 CHULALONGKORN UNIV.', 40, 640);
+    ctx.fillText('📍 CHULALONGKORN UNIV.', 40, 475);
 
     ctx.fillStyle = '#10B981';
     ctx.textAlign = 'right';
-    ctx.fillText('13.7367° N, 100.5331° E', 560, 640);
+    ctx.fillText('13.7367° N, 100.5331° E', 560, 475);
 
     // Convert directly to base64 PNG data URL
     const dataUrl = canvas.toDataURL('image/png');
@@ -519,7 +596,7 @@ export default function App() {
               >
                 <span className="flex items-center gap-2">
                   <Share2 className="w-4 h-4 text-emerald-300 group-hover:scale-110 transition-transform" />
-                  แชร์กรีนการ์ดวันนี้ลง Story อวดเพื่่อน ๆ กัน!
+                  แชร์กรีนการ์ดวันนี้ลง Story (Strava Style)
                 </span>
                 <span className="bg-white/20 px-2 py-0.5 rounded text-[9px]">READY 📲</span>
               </button>
@@ -885,7 +962,7 @@ export default function App() {
                       </div>
 
                       <button 
-                        onClick={() => handleRedeem(reward)}
+                        onClick={() => { handleRedeem(reward); }}
                         className="bg-pink-600 hover:bg-pink-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-xl whitespace-nowrap"
                       >
                         แลกสิทธิ์
@@ -895,7 +972,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Recent Transactions list */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold text-slate-800">ประวัติการทำความดีและแลกของ</h4>
                 
@@ -926,7 +1002,7 @@ export default function App() {
               {/* Virtual Power Plant Interactive Board */}
               <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white rounded-3xl p-4 relative overflow-hidden border border-indigo-500/25 shadow-md">
                 <div className="absolute right-[-15px] top-[-10px] opacity-10">
-                  <Sun className="w-32 h-32 animate-spin-slow text-yellow-300" />
+                  <Sun className="w-32 h-32 text-yellow-300 animate-pulse" />
                 </div>
                 
                 <div className="relative z-10">
@@ -974,14 +1050,14 @@ export default function App() {
                   <Sun className="w-5 h-5 animate-pulse" />
                 </div>
                 <div>
-                  <h4 className="text-[11px] font-extrabold text-emerald-400 uppercase tracking-wider">พลังสะอาดที่คุณช่วยลดให้คณะ</h4>
+                  <h4 className="text-[11px] font-extrabold text-emerald-400 tracking-wider uppercase">พลังสะอาดที่คุณช่วยลดให้คณะ</h4>
                   <p className="text-base font-black text-slate-800 mt-0.5">
                     {personalEnergySaved} <span className="text-xs font-semibold text-slate-500">kWh สะสม</span>
                   </p>
                 </div>
               </div>
 
-              {/* Leaderboard rankings adjusted to use exact formula calculations */}
+              {/* Leaderboard rankings adjusted to show clean energy saved details */}
               <div className="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-xs space-y-3.5">
                 <div className="flex justify-between items-center">
                   <h4 className="text-xs font-black text-slate-800 tracking-tight flex items-center gap-1">
@@ -992,7 +1068,6 @@ export default function App() {
 
                 <div className="space-y-2.5">
                   {/* Guild Rank 1: Engineering */}
-                  {/* Calculation: Saving 24%, Clean Energy 55%, Participation 85% -> RES = 45.5 */}
                   <div className="bg-gradient-to-r from-emerald-50 to-emerald-50/20 border border-emerald-100 rounded-2xl p-3">
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-2.5">
@@ -1018,7 +1093,6 @@ export default function App() {
                   </div>
 
                   {/* Guild Rank 2: Science */}
-                  {/* Calculation: Saving 18%, Clean Energy 60%, Participation 75% -> RES = 42.0 */}
                   <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3">
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-2.5">
@@ -1044,7 +1118,6 @@ export default function App() {
                   </div>
 
                   {/* Guild Rank 3: Architecture */}
-                  {/* Calculation: Saving 15%, Clean Energy 40%, Participation 90% -> RES = 37.5 */}
                   <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3">
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-2.5">
@@ -1189,18 +1262,18 @@ export default function App() {
             </div>
 
             {/* REAL NATIVE IMAGE CONTAINER (Direct display of pre-generated PNG url for perfect touch-save compatibility) */}
-            <div className="relative flex justify-center items-center w-[328px] h-[370px] mx-auto rounded-[36px] overflow-hidden bg-slate-950/40 border border-slate-800/50">
+            <div className="relative flex justify-center items-center w-[328px] h-[274px] mx-auto rounded-[36px] overflow-hidden bg-slate-950/40 border border-slate-800/50">
               {exportedImageUrl ? (
                 <img 
                   src={exportedImageUrl} 
-                  alt="CUVERSE Eco Story Card" 
+                  alt="CUVERSE Eco Story Map Card" 
                   className="w-full h-full object-contain cursor-pointer pointer-events-auto select-all select-none"
                   title="แตะค้างที่รูปภาพเพื่อบันทึก"
                 />
               ) : (
                 <div className="text-white text-xs font-medium animate-pulse flex flex-col items-center gap-2">
                   <span className="w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></span>
-                  กำลังสร้างการ์ดรักษ์โลก...
+                  กำลังสร้างพิกัดแผนที่กรีน...
                 </div>
               )}
             </div>
