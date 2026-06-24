@@ -254,7 +254,6 @@ export default function App() {
     triggerToast(`🎁 แลกสำเร็จ! รหัสสิทธิ์สแกนถูกเก็บลงหน้า Profile แล้ว`, 'success');
   };
 
-  // Helper for backward compatible rounded paths
   const drawRoundedRect = (ctx, x, y, width, height, radius) => {
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
@@ -271,17 +270,18 @@ export default function App() {
 
   const renderCanvasImage = () => {
     const canvas = document.createElement('canvas');
+    // Aspect ratio converted to 1:1 Square (600x600)
     canvas.width = 600;
-    canvas.height = 500;
+    canvas.height = 600;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     // Clear Canvas
-    ctx.clearRect(0, 0, 600, 500);
+    ctx.clearRect(0, 0, 600, 600);
 
-    // 1. Draw Card Background with appropriate gradients
+    // 1. Draw Card Background with appropriate gradients (Transparent or colored)
     if (storyTheme !== 'transparent') {
-      const grad = ctx.createLinearGradient(0, 0, 600, 500);
+      const grad = ctx.createLinearGradient(0, 0, 600, 600);
       if (storyTheme === 'cyberpunk') {
         grad.addColorStop(0, '#4a0422');
         grad.addColorStop(0.5, '#210515');
@@ -300,7 +300,7 @@ export default function App() {
         grad.addColorStop(1, '#080301');
       }
       ctx.fillStyle = grad;
-      drawRoundedRect(ctx, 0, 0, 600, 500, 48);
+      drawRoundedRect(ctx, 0, 0, 600, 600, 48);
       ctx.fill();
     }
 
@@ -308,65 +308,65 @@ export default function App() {
     // Small emerald sphere
     ctx.fillStyle = '#10B981';
     ctx.beginPath();
-    ctx.arc(60, 45, 11, 0, Math.PI * 2);
+    ctx.arc(60, 50, 11, 0, Math.PI * 2);
     ctx.fill();
 
     // CU Text
     ctx.fillStyle = '#ffffff';
-    ctx.font = '900 24px sans-serif';
+    ctx.font = '900 28px sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText('CU', 80, 45);
+    ctx.fillText('CU', 80, 50);
 
     // VERSE Text
     ctx.fillStyle = '#10B981';
-    ctx.fillText('VERSE', 115, 45);
+    ctx.fillText('VERSE', 125, 50);
 
     // 3. Streak Pill Badge (Top-right)
     ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-    drawRoundedRect(ctx, 420, 28, 140, 34, 17);
+    drawRoundedRect(ctx, 420, 30, 140, 40, 20);
     ctx.fill();
 
     ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.font = 'bold 12px sans-serif';
+    ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`STREAK: ${streak} DAYS`, 490, 45);
+    ctx.fillText(`STREAK: ${streak} DAYS`, 490, 50);
 
-    // 4. Center Metrics Block
+    // 4. Center Metrics Block (Font Sizes significantly increased)
     // Spark icon & Subtitle
     ctx.fillStyle = '#f59e0b';
-    ctx.font = '14px sans-serif';
+    ctx.font = 'bold 20px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('⚡ พลังงานลดโลกร้อนวันนี้', 300, 130);
+    ctx.fillText('⚡ พลังงานลดโลกร้อนวันนี้', 300, 150);
 
     // Main Value (Energy kWh)
     const valText = calculateTodayEnergySaved();
-    ctx.font = '900 68px sans-serif';
+    ctx.font = '900 80px sans-serif';
     const valW = ctx.measureText(valText).width;
 
-    ctx.font = '300 24px sans-serif';
+    ctx.font = '300 28px sans-serif';
     const unitW = ctx.measureText(' kWh').width;
 
     const startX = 300 - ((valW + unitW) / 2);
 
     ctx.fillStyle = '#10B981';
-    ctx.font = '900 68px sans-serif';
+    ctx.font = '900 80px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(valText, startX, 200);
+    ctx.fillText(valText, startX, 230);
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = '300 24px sans-serif';
-    ctx.fillText(' kWh', startX + valW, 192);
+    ctx.font = '300 28px sans-serif';
+    ctx.fillText(' kWh', startX + valW, 220);
 
     // Carbon Savings Detail
     ctx.fillStyle = '#94a3b8';
-    ctx.font = 'bold 14px sans-serif';
+    ctx.font = 'bold 18px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`เทียบเท่าการประหยัดคาร์บอน ${carbonSaved.toFixed(1)} kg`, 300, 245);
+    ctx.fillText(`เทียบเท่าการประหยัดคาร์บอน ${carbonSaved.toFixed(1)} kg`, 300, 285);
 
-    // Map bounds: x from 40 to 560, y from 280 to 440 (height: 160px)
-    const mapY = 280;
-    const mapH = 160;
+    // 5. Grid Map representation shifted downwards to fit beautifully inside the square aspect
+    const mapY = 340;
+    const mapH = 180;
     
     // Draw map background glass board
     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
@@ -394,11 +394,11 @@ export default function App() {
     ctx.lineWidth = 2;
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
-    ctx.moveTo(120, mapY + 110); // ENG 3
-    ctx.lineTo(190, mapY + 50);  // Sci Lab
-    ctx.lineTo(260, mapY + 95);  // CU Forest
-    ctx.lineTo(380, mapY + 65);  // Pra Keaw
-    ctx.lineTo(480, mapY + 115); // Central Lib
+    ctx.moveTo(120, mapY + 120); // ENG 3
+    ctx.lineTo(190, mapY + 40);  // Sci Lab
+    ctx.lineTo(260, mapY + 100);  // CU Forest
+    ctx.lineTo(380, mapY + 60);  // Pra Keaw
+    ctx.lineTo(480, mapY + 120); // Central Lib
     ctx.stroke();
     ctx.setLineDash([]); // Reset dash
 
@@ -406,16 +406,25 @@ export default function App() {
     ctx.strokeStyle = 'rgba(6, 182, 212, 0.15)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(120, mapY + 110);
-    ctx.lineTo(260, mapY + 95);
-    ctx.lineTo(480, mapY + 115);
+    ctx.moveTo(120, mapY + 120);
+    ctx.lineTo(260, mapY + 100);
+    ctx.lineTo(480, mapY + 120);
     ctx.stroke();
 
-    // Render Pin locations and active emojis
+    // Render Pin locations and active emojis using absolute node offsets
     const pins = getActiveMapPins();
     pins.forEach(pin => {
-      const px = pin.x;
-      const py = mapY + (pin.y - 380) * (mapH / 200); // Adjusted relative y scaled perfectly for 160px height
+      let px = 260;
+      let py = mapY + 100;
+
+      // Absolute node coordinates matching neon background paths exactly
+      if (pin.id === 'walk') { px = 260; py = mapY + 100; }
+      else if (pin.id === 'bike') { px = 190; py = mapY + 80; }
+      else if (pin.id === 'pop') { px = 380; py = mapY + 90; }
+      else if (pin.id === 'bento') { px = 380; py = mapY + 60; }
+      else if (pin.id === 'water') { px = 480; py = mapY + 120; }
+      else if (pin.id === 'patrol') { px = 120; py = mapY + 120; }
+      else if (pin.id === 'lab') { px = 190; py = mapY + 40; }
 
       // Pulsing Green Glow underneath active pin
       const pulseGrad = ctx.createRadialGradient(px, py, 2, px, py, 24);
@@ -441,19 +450,19 @@ export default function App() {
 
       // Label Text for Map Locations
       ctx.fillStyle = '#94a3b8';
-      ctx.font = 'bold 9px monospace';
+      ctx.font = 'bold 11px monospace';
       ctx.fillText(pin.label.toUpperCase(), px, py + 20);
     });
 
     // 6. Footer (Geotag)
     ctx.fillStyle = '#64748b';
-    ctx.font = 'bold 11px sans-serif';
+    ctx.font = 'bold 14px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText('📍 CHULALONGKORN UNIV.', 40, 475);
+    ctx.fillText('📍 CHULALONGKORN UNIV.', 40, 565);
 
     ctx.fillStyle = '#10B981';
     ctx.textAlign = 'right';
-    ctx.fillText('13.7367° N, 100.5331° E', 560, 475);
+    ctx.fillText('13.7367° N, 100.5331° E', 560, 565);
 
     // Convert directly to base64 PNG data URL
     const dataUrl = canvas.toDataURL('image/png');
@@ -596,7 +605,7 @@ export default function App() {
               >
                 <span className="flex items-center gap-2">
                   <Share2 className="w-4 h-4 text-emerald-300 group-hover:scale-110 transition-transform" />
-                  แชร์กรีนการ์ดวันนี้ลง Story (Strava Style)
+                  แชร์กรีนการ์ดวันนี้ลง Story อวดเพื่อน ๆ กัน!
                 </span>
                 <span className="bg-white/20 px-2 py-0.5 rounded text-[9px]">READY 📲</span>
               </button>
@@ -962,7 +971,7 @@ export default function App() {
                       </div>
 
                       <button 
-                        onClick={() => { handleRedeem(reward); }}
+                        onClick={() => handleRedeem(reward)}
                         className="bg-pink-600 hover:bg-pink-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-xl whitespace-nowrap"
                       >
                         แลกสิทธิ์
@@ -1219,6 +1228,7 @@ export default function App() {
       </div>
 
       {/* STRARVA-STYLE GORGEOUS GREEN IMPACT STORY MODAL OVERLAY */}
+      {}
       {isShareModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[999] p-4 select-none overflow-y-auto">
           <div className="bg-slate-900 border border-slate-800 rounded-[32px] w-full max-w-[360px] p-5 relative flex flex-col gap-4 animate-scaleUp">
@@ -1262,7 +1272,7 @@ export default function App() {
             </div>
 
             {/* REAL NATIVE IMAGE CONTAINER (Direct display of pre-generated PNG url for perfect touch-save compatibility) */}
-            <div className="relative flex justify-center items-center w-[328px] h-[274px] mx-auto rounded-[36px] overflow-hidden bg-slate-950/40 border border-slate-800/50">
+            <div className="relative flex justify-center items-center w-[328px] h-[328px] mx-auto rounded-[36px] overflow-hidden bg-slate-950/40 border border-slate-800/50">
               {exportedImageUrl ? (
                 <img 
                   src={exportedImageUrl} 
