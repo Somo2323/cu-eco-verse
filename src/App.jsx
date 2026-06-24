@@ -40,13 +40,13 @@ export default function App() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [storyTheme, setStoryTheme] = useState('cyberpunk'); // cyberpunk, emerald, aurora, sunset, transparent
   const [html2canvasLoaded, setHtml2canvasLoaded] = useState(false);
-  const [exportedImageUrl, setExportedImageUrl] = useState(null); // Base64 image URL for mobile download fallback
-  const [isExportedImageModalOpen, setIsExportedImageModalOpen] = useState(false);
+  const [exportedImageUrl, setExportedImageUrl] = useState(null); // Holds generated Base64 image URL
+  const [isGenerating, setGenerating] = useState(false); // Render-state tracking
   
   const storyCardRef = useRef(null);
 
   useEffect(() => {
-    // Dynamic import of html2canvas via CDN for image exporting
+    // Dynamic import of html2canvas via CDN for high quality image rendering
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
     script.async = true;
@@ -57,7 +57,7 @@ export default function App() {
     };
   }, []);
 
-  // Define energy values in kWh for each activity to show exact calculated values
+  // Energy values strictly associated with the actions
   const activityEnergyValues = {
     r_walk: 0.35,
     r_bike: 0.28,
@@ -76,7 +76,6 @@ export default function App() {
     q_raid: 12.00
   };
 
-  // Compute total energy saved strictly today
   const calculateTodayEnergySaved = () => {
     let total = 0;
     if (chosenRoute && activityEnergyValues[chosenRoute]) {
@@ -87,12 +86,10 @@ export default function App() {
         total += activityEnergyValues[questId];
       }
     });
-    // Ensure if they just started, it defaults to a realistic visual baseline like 5.90 kWh
-    if (total === 0) return "5.90";
+    if (total === 0) return "5.90"; // Baseline today match representation
     return total.toFixed(2);
   };
 
-  // Determine active badges based on player behavior today
   const getTodayBadges = () => {
     const badges = [];
     if (chosenRoute === 'r_walk') badges.push({ emoji: '👟', label: 'Walk', desc: 'เดินเรียนผ่านสวนจามจุรี' });
@@ -104,7 +101,6 @@ export default function App() {
     if (completedQuests.includes('q_proj') || completedQuests.includes('q_phantom')) badges.push({ emoji: '🔌', label: 'Patrol', desc: 'ปิดอุปกรณ์ไฟฟ้าห้องเรียน' });
     if (completedQuests.includes('q_fume') || completedQuests.includes('q_freezer')) badges.push({ emoji: '🧪', label: 'Lab Duty', desc: 'คุมแล็บรักษ์พลังงาน' });
 
-    // Fallback if they haven't done anything today yet, show default beginner badges (matches image_8885eb.png)
     if (badges.length === 0) {
       badges.push({ emoji: '👟', label: 'Walk', desc: 'เดินเรียนประหยัดคาร์บอน' });
       badges.push({ emoji: '🍱', label: 'Bento', desc: 'คืนกล่องข้าวหมุนเวียน' });
@@ -260,34 +256,55 @@ export default function App() {
     triggerToast(`🎁 แลกสำเร็จ! รหัสสิทธิ์สแกนถูกเก็บลงหน้า Profile แล้ว`, 'success');
   };
 
+  const generatePreviewImage = () => {
+    if (!html2canvasLoaded) return;
+    setGenerating(true);
+    
+    setTimeout(() => {
+      if (storyCardRef.current && window.html2canvas) {
+        window.html2canvas(storyCardRef.current, {
+          scale: 3, // Enhanced output sharpness
+          useCORS: true,
+          backgroundColor: null,
+          logging: false
+        }).then(canvas => {
+          const imgData = canvas.toDataURL("image/png");
+          setExportedImageUrl(imgData);
+          setGenerating(false);
+        }).catch(err => {
+          console.error("Story Card generation failed", err);
+          setGenerating(false);
+        });
+      } else {
+        setGenerating(false);
+      }
+    }, 450); // Balanced timeout ensuring complete state layout updates
+  };
+
+  // Re-generate PNG preview when dependencies or color selections change
+  useEffect(() => {
+    if (isShareModalOpen && html2canvasLoaded) {
+      generatePreviewImage();
+    }
+  }, [isShareModalOpen, storyTheme, html2canvasLoaded, coins, carbonSaved]);
+
   const handleExportPNG = () => {
-    if (!html2canvasLoaded) {
-      triggerToast("ระบบประมวลผลรูปภาพยังไม่พร้อม กรุณารอสักครู่", "info");
+    if (!exportedImageUrl) {
+      triggerToast("กรุณารอระบบประมวลผลความละเอียดภาพสักครู่...", "info");
       return;
     }
-    if (storyCardRef.current) {
-      window.html2canvas(storyCardRef.current, {
-        scale: 3, // Premium rendering quality
-        useCORS: true,
-        backgroundColor: null
-      }).then(canvas => {
-        const image = canvas.toDataURL("image/png");
-        setExportedImageUrl(image);
-        setIsExportedImageModalOpen(true); // Open the preview fallback modal for mobile tap-to-hold support
-        
-        // Native browser link fallback
-        const link = document.createElement("a");
-        link.href = image;
-        link.download = `cuverse_story_${storyTheme}.png`;
-        document.body.appendChild(link); // Required for mobile browsers/firefox compatibility
-        link.click();
-        document.body.removeChild(link);
-        
-        triggerToast("💾 ประมวลผลกรีนการ์ดสำเร็จ! (แตะค้างที่รูปภาพเพื่อบันทึกบนมือถือ)");
-      }).catch(err => {
-        console.error("Canvas export failed", err);
-        triggerToast("เกิดข้อผิดพลาดในการเซฟภาพ กรุณาลองใหม่อีกครั้ง", "error");
-      });
+    
+    try {
+      const link = document.createElement("a");
+      link.href = exportedImageUrl;
+      link.download = `cuverse_story_${storyTheme}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      triggerToast("💾 บันทึกรูปภาพกรีนการ์ดสำเร็จ!");
+    } catch (err) {
+      console.error("Direct browser download failed", err);
+      triggerToast("แตะค้างที่การ์ดภาพเพื่อดาวน์โหลดโดยตรงได้เลยครับ", "info");
     }
   };
 
@@ -398,7 +415,7 @@ export default function App() {
               {/* Strava Share Dynamic Story Generator Trigger */}
               <button
                 onClick={() => {
-                  setExportedImageUrl(null); // Reset URL before generating
+                  setExportedImageUrl(null);
                   setIsShareModalOpen(true);
                 }}
                 className="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white p-3.5 rounded-2xl border border-emerald-500/25 shadow-md flex items-center justify-between transition-all font-black text-[11px] uppercase tracking-wide group"
@@ -1060,7 +1077,7 @@ export default function App() {
                     key={t}
                     onClick={() => {
                       setStoryTheme(t);
-                      setExportedImageUrl(null); // Force re-render of generated base64 image on theme changes
+                      setExportedImageUrl(null);
                     }}
                     title={t === 'transparent' ? 'พื้นหลังโปร่งใส' : `ธีม ${t}`}
                     className={`w-5 h-5 rounded-full border ${
@@ -1076,123 +1093,127 @@ export default function App() {
             </div>
 
             {/* REAL STORY CARD DOM CONTAINER (Matches image_88f30b.png precisely) */}
-            <div 
-              ref={storyCardRef}
-              id="story-share-card"
-              className={`w-[328px] h-[370px] rounded-[36px] relative p-6 overflow-hidden flex flex-col justify-between text-white transition-all duration-300 ${
-                storyTheme === 'transparent' ? 'bg-transparent border-0 shadow-none' :
-                storyTheme === 'emerald' ? 'bg-gradient-to-br from-[#022c22] via-[#041a16] to-[#010807] border border-[#10B981]/20 shadow-2xl' :
-                storyTheme === 'cyberpunk' ? 'bg-gradient-to-br from-[#4a0422] via-[#210515] to-[#0a0209] border border-rose-500/10 shadow-2xl' :
-                storyTheme === 'aurora' ? 'bg-gradient-to-br from-[#0c1033] via-[#051a24] to-[#010408] border border-cyan-500/10 shadow-2xl' :
-                'bg-gradient-to-br from-[#3b1704] via-[#1a0c02] to-[#080301] border border-[#f59e0b]/15 shadow-2xl'
-              }`}
-            >
-              {/* Background ambient watermarks (Only visible when not using transparent mode) */}
-              {storyTheme !== 'transparent' && (
-                <>
-                  <div className="absolute right-[-30px] top-[-30px] w-48 h-48 bg-white/5 rounded-full blur-2xl animate-pulse" />
-                  <div className="absolute left-[-20px] bottom-[-20px] w-40 h-40 bg-emerald-500/5 rounded-full blur-2xl" />
-                </>
+            <div className="relative flex justify-center items-center w-[328px] h-[370px] mx-auto rounded-[36px] overflow-hidden bg-slate-950/40 border border-slate-800">
+              {isGenerating && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 z-20 gap-3">
+                  <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-[11px] font-bold text-slate-300">กำลังดีไซน์กรีนการ์ด...</p>
+                </div>
+              )}
+              
+              {/* Real image for native touch-hold/long-press save support */}
+              {exportedImageUrl ? (
+                <img 
+                  src={exportedImageUrl} 
+                  alt="CUVERSE Story Card" 
+                  className="w-full h-full object-contain pointer-events-auto select-all cursor-pointer"
+                  title="แตะค้างเพื่อบันทึกรูปภาพ"
+                />
+              ) : (
+                <div className="text-center p-4">
+                  <p className="text-xs text-slate-400">กรุณารอระบบทำการสร้างภาพการ์ดสักครู่...</p>
+                </div>
               )}
 
-              {/* Story Card Header with minimalist CUVERSE branding (Exact match of image_88f30b.png) */}
-              <div className="flex justify-between items-center z-10 shrink-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-3.5 h-3.5 bg-[#10B981] rounded-full"></span>
-                  <span className="text-[14px] font-black tracking-wider uppercase font-mono">
-                    CU<span className="text-[#10B981]">VERSE</span>
-                  </span>
-                </div>
-                <span className="text-[9px] bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-full text-slate-300 font-bold uppercase tracking-wider">
-                  STREAK: {streak} DAYS
-                </span>
-              </div>
+              {/* Hidden actual DOM card off-screen so html2canvas renders it cleanly */}
+              <div className="absolute opacity-0 pointer-events-none -z-50 left-[-9999px]">
+                <div 
+                  ref={storyCardRef}
+                  className={`w-[328px] h-[370px] rounded-[36px] relative p-6 overflow-hidden flex flex-col justify-between text-white transition-all duration-300 ${
+                    storyTheme === 'transparent' ? 'bg-transparent' :
+                    storyTheme === 'emerald' ? 'bg-gradient-to-br from-[#022c22] via-[#041a16] to-[#010807]' :
+                    storyTheme === 'cyberpunk' ? 'bg-gradient-to-br from-[#4a0422] via-[#210515] to-[#0a0209]' :
+                    storyTheme === 'aurora' ? 'bg-gradient-to-br from-[#0c1033] via-[#051a24] to-[#010408]' :
+                    'bg-gradient-to-br from-[#3b1704] via-[#1a0c02] to-[#080301]'
+                  }`}
+                >
+                  {/* Background ambient watermarks */}
+                  {storyTheme !== 'transparent' && (
+                    <>
+                      <div className="absolute right-[-30px] top-[-30px] w-48 h-48 bg-white/5 rounded-full blur-2xl animate-pulse" />
+                      <div className="absolute left-[-20px] bottom-[-20px] w-40 h-40 bg-emerald-500/5 rounded-full blur-2xl" />
+                    </>
+                  )}
 
-              {/* Story Center Metrics Wrap (Clean & Balanced match with image_88f30b.png) */}
-              <div className="space-y-1.5 z-10 my-auto text-center shrink-0">
-                <p className="text-[10px] text-slate-300 uppercase font-extrabold tracking-widest flex items-center justify-center gap-1">
-                  <span className="text-[#f59e0b]">⚡</span> พลังงานลดโลกร้อนวันนี้
-                </p>
-                <h2 className="text-5xl font-black tracking-tight text-[#10B981] drop-shadow-md">
-                  {calculateTodayEnergySaved()} <span className="text-xl font-light text-white">kWh</span>
-                </h2>
-                <p className="text-[11px] text-slate-300">
-                  เทียบเท่าการประหยัดคาร์บอน <span className="font-extrabold text-white">{carbonSaved.toFixed(1)} kg</span>
-                </p>
-              </div>
-
-              {/* Dynamic Action Badge Stamps Row (Matches bottom tray of image_88f30b.png) */}
-              <div className="z-10 bg-black/35 backdrop-blur-md rounded-3xl p-3 border border-white/5 space-y-1 shrink-0">
-                <div className="flex justify-around items-center py-0.5">
-                  {getTodayBadges().map((badge, idx) => (
-                    <div 
-                      key={idx}
-                      className="flex flex-col items-center gap-0.5"
-                    >
-                      <span className="text-2xl drop-shadow-lg filter saturate-125 select-none transform transition-transform duration-200">
-                        {badge.emoji}
-                      </span>
-                      <span className="text-[8px] font-extrabold text-slate-400 tracking-wider uppercase font-mono mt-0.5">
-                        {badge.label}
+                  {/* Story Card Header with minimalist CUVERSE branding */}
+                  <div className="flex justify-between items-center z-10 shrink-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-3.5 h-3.5 bg-[#10B981] rounded-full"></span>
+                      <span className="text-[14px] font-black tracking-wider uppercase font-mono">
+                        CU<span className="text-[#10B981]">VERSE</span>
                       </span>
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <span className="text-[9px] bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-full text-slate-300 font-bold uppercase tracking-wider">
+                      STREAK: {streak} DAYS
+                    </span>
+                  </div>
 
-              {/* Story Card Footer branding */}
-              <div className="flex justify-between items-center pt-2 z-10 text-[9px] text-slate-400 font-mono tracking-wide shrink-0">
-                <span className="flex items-center gap-1">📍 CHULALONGKORN UNIV.</span>
-                <span className="text-[#10B981] font-bold">13.7367° N, 100.5331° E</span>
+                  {/* Story Center Metrics Wrap */}
+                  <div className="space-y-1.5 z-10 my-auto text-center shrink-0">
+                    <p className="text-[10px] text-slate-300 uppercase font-extrabold tracking-widest flex items-center justify-center gap-1">
+                      <span className="text-[#f59e0b]">⚡</span> พลังงานลดโลกร้อนวันนี้
+                    </p>
+                    <h2 className="text-5xl font-black tracking-tight text-[#10B981] drop-shadow-md">
+                      {calculateTodayEnergySaved()} <span className="text-xl font-light text-white">kWh</span>
+                    </h2>
+                    <p className="text-[11px] text-slate-300">
+                      เทียบเท่าการประหยัดคาร์บอน <span className="font-extrabold text-white">{carbonSaved.toFixed(1)} kg</span>
+                    </p>
+                  </div>
+
+                  {/* Dynamic Action Badge Stamps Row */}
+                  <div className="z-10 bg-black/35 backdrop-blur-md rounded-3xl p-3 border border-white/5 space-y-1 shrink-0">
+                    <div className="flex justify-around items-center py-0.5">
+                      {getTodayBadges().map((badge, idx) => (
+                        <div 
+                          key={idx}
+                          className="flex flex-col items-center gap-0.5"
+                        >
+                          <span className="text-2xl drop-shadow-lg filter saturate-125 select-none transform transition-transform duration-200">
+                            {badge.emoji}
+                          </span>
+                          <span className="text-[8px] font-extrabold text-slate-400 tracking-wider uppercase font-mono mt-0.5">
+                            {badge.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Story Card Footer branding */}
+                  <div className="flex justify-between items-center pt-2 z-10 text-[9px] text-slate-400 font-mono tracking-wide shrink-0">
+                    <span className="flex items-center gap-1">📍 CHULALONGKORN UNIV.</span>
+                    <span className="text-[#10B981] font-bold">13.7367° N, 100.5331° E</span>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Action buttons */}
-            <div className="flex gap-2 shrink-0">
-              <button
-                onClick={handleExportPNG}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-black text-[10.5px] flex items-center justify-center gap-1 shadow-md transition-colors"
-              >
-                <Download className="w-4 h-4" /> ดาวน์โหลด PNG
-              </button>
-              <button
-                onClick={() => setIsShareModalOpen(false)}
-                className="bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-4 rounded-xl font-bold text-[10.5px] transition-colors"
-              >
-                ปิดหน้าต่าง
-              </button>
+            <div className="flex flex-col gap-2.5 shrink-0">
+              <div className="bg-slate-950/60 p-2 text-center rounded-xl border border-slate-800">
+                <p className="text-[9px] text-slate-400 leading-normal">
+                  💡 <span className="font-extrabold text-[#10B981]">เคล็ดลับบนมือถือ:</span> ท่านสามารถแตะแช่ค้างไว้ที่ตัวการ์ดภาพด้านบนเพื่อเลือกบันทึกภาพลงเครื่องได้ทันที!
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={handleExportPNG}
+                  disabled={isGenerating || !exportedImageUrl}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800/50 disabled:text-slate-500 text-white py-2.5 rounded-xl font-black text-[10.5px] flex items-center justify-center gap-1 shadow-md transition-colors"
+                >
+                  <Download className="w-4 h-4" /> ดาวน์โหลด PNG
+                </button>
+                <button
+                  onClick={() => setIsShareModalOpen(false)}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-4 rounded-xl font-bold text-[10.5px] transition-colors"
+                >
+                  ปิดหน้าต่าง
+                </button>
+              </div>
             </div>
 
-          </div>
-        </div>
-      )}
-
-      {/* MOBILE-FRIENDLY PHOTO FALLBACK OVERLAY (Solves line/safari downloading blocks) */}
-      {isExportedImageModalOpen && exportedImageUrl && (
-        <div className="fixed inset-0 bg-black/95 flex flex-col items-center justify-center z-[1000] p-4 select-none">
-          <div className="max-w-[340px] text-center space-y-4">
-            <h3 className="text-white text-sm font-black flex items-center justify-center gap-1.5">
-              <Sparkles className="w-5 h-5 text-emerald-400 animate-pulse" /> บันทึกรูปภาพกรีนการ์ด
-            </h3>
-            
-            <p className="text-xs text-slate-300 leading-relaxed">
-              แตะค้างที่รูปภาพด้านล่างเพื่อเลือก <span className="text-emerald-400 font-bold">"บันทึกรูปภาพ" (Save Image)</span> ลงในอุปกรณ์ของคุณเพื่อโพสต์ลง IG Story ต่อได้ทันที!
-            </p>
-
-            <div className="border border-slate-800 rounded-[28px] overflow-hidden bg-slate-900/50 shadow-2xl">
-              <img 
-                src={exportedImageUrl} 
-                alt="CU Eco-Verse Exported Story" 
-                className="w-full h-auto select-all max-h-[380px] object-contain pointer-events-auto"
-              />
-            </div>
-
-            <button
-              onClick={() => setIsExportedImageModalOpen(false)}
-              className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-colors"
-            >
-              ย้อนกลับหน้าแรก
-            </button>
           </div>
         </div>
       )}
