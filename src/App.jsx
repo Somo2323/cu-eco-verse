@@ -38,7 +38,7 @@ export default function App() {
 
   // Sharing Card Overlay state
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [storyTheme, setStoryTheme] = useState('emerald'); // emerald, cyberpunk, aurora, sunset, transparent
+  const [storyTheme, setStoryTheme] = useState('cyberpunk'); // cyberpunk, emerald, aurora, sunset, transparent
   const [html2canvasLoaded, setHtml2canvasLoaded] = useState(false);
   const [exportedImageUrl, setExportedImageUrl] = useState(null); // Base64 image URL for mobile download fallback
   const [isExportedImageModalOpen, setIsExportedImageModalOpen] = useState(false);
@@ -361,7 +361,7 @@ export default function App() {
                     <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
                       ENG-GUILD
                     </span>
-                    <h3 className="text-base font-black mt-1">เกียรสศักดิ์ วิศวฯ ปี 1</h3>
+                    <h3 className="text-base font-black mt-1">เกียรตศักดิ์ วิศวฯ ปี 1</h3>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] text-pink-200">Carbon Hero</p>
@@ -1055,7 +1055,7 @@ export default function App() {
                 <Palette className="w-3.5 h-3.5 text-pink-400" /> เลือกธีมพื้นหลัง:
               </span>
               <div className="flex gap-1.5">
-                {['emerald', 'cyberpunk', 'aurora', 'sunset', 'transparent'].map(t => (
+                {['cyberpunk', 'emerald', 'aurora', 'sunset', 'transparent'].map(t => (
                   <button
                     key={t}
                     onClick={() => {
@@ -1064,10 +1064,10 @@ export default function App() {
                     }}
                     title={t === 'transparent' ? 'พื้นหลังโปร่งใส' : `ธีม ${t}`}
                     className={`w-5 h-5 rounded-full border ${
-                      t === 'emerald' ? 'bg-emerald-600 border-emerald-400' :
-                      t === 'cyberpunk' ? 'bg-gradient-to-tr from-pink-600 to-rose-400 border-pink-400' :
-                      t === 'aurora' ? 'bg-gradient-to-tr from-indigo-700 to-cyan-500 border-indigo-400' :
-                      t === 'sunset' ? 'bg-gradient-to-tr from-amber-600 to-yellow-400 border-amber-400' :
+                      t === 'emerald' ? 'bg-[#022c22] border-[#10B981]' :
+                      t === 'cyberpunk' ? 'bg-gradient-to-br from-[#4a0422] to-[#0a0209] border-[#f43f5e]' :
+                      t === 'aurora' ? 'bg-gradient-to-br from-[#0c1033] to-[#010408] border-[#38bdf8]' :
+                      t === 'sunset' ? 'bg-gradient-to-br from-[#3b1704] to-[#080301] border-[#f59e0b]' :
                       'bg-slate-800 border-slate-400 border-dashed relative after:content-[""] after:absolute after:inset-1 after:border-t after:border-rose-400 after:rotate-45'
                     } ${storyTheme === t ? 'scale-125 ring-2 ring-white/50' : 'opacity-70'}`}
                   />
@@ -1075,16 +1075,16 @@ export default function App() {
               </div>
             </div>
 
-            {/* REAL STORY CARD DOM CONTAINER (Compact 1:1 or neatly bounded Portrait) */}
+            {/* REAL STORY CARD DOM CONTAINER (Matches image_88f30b.png precisely) */}
             <div 
               ref={storyCardRef}
               id="story-share-card"
-              className={`w-full h-[350px] rounded-[28px] relative p-5 overflow-hidden flex flex-col justify-between text-white transition-all duration-300 ${
+              className={`w-[328px] h-[370px] rounded-[36px] relative p-6 overflow-hidden flex flex-col justify-between text-white transition-all duration-300 ${
                 storyTheme === 'transparent' ? 'bg-transparent border-0 shadow-none' :
-                storyTheme === 'emerald' ? 'bg-gradient-to-br from-emerald-950 via-teal-900 to-slate-950 border border-emerald-500/25 shadow-2xl' :
-                storyTheme === 'cyberpunk' ? 'bg-gradient-to-br from-pink-950 via-rose-900 to-slate-950 border border-pink-500/25 shadow-2xl' :
-                storyTheme === 'aurora' ? 'bg-gradient-to-br from-slate-950 via-indigo-950 to-cyan-950 border border-cyan-500/25 shadow-2xl' :
-                'bg-gradient-to-br from-amber-950 via-orange-950 to-slate-950 border border-amber-500/25 shadow-2xl'
+                storyTheme === 'emerald' ? 'bg-gradient-to-br from-[#022c22] via-[#041a16] to-[#010807] border border-[#10B981]/20 shadow-2xl' :
+                storyTheme === 'cyberpunk' ? 'bg-gradient-to-br from-[#4a0422] via-[#210515] to-[#0a0209] border border-rose-500/10 shadow-2xl' :
+                storyTheme === 'aurora' ? 'bg-gradient-to-br from-[#0c1033] via-[#051a24] to-[#010408] border border-cyan-500/10 shadow-2xl' :
+                'bg-gradient-to-br from-[#3b1704] via-[#1a0c02] to-[#080301] border border-[#f59e0b]/15 shadow-2xl'
               }`}
             >
               {/* Background ambient watermarks (Only visible when not using transparent mode) */}
@@ -1095,44 +1095,44 @@ export default function App() {
                 </>
               )}
 
-              {/* Story Card Header with minimalist CUVERSE branding */}
-              <div className="flex justify-between items-center z-10">
+              {/* Story Card Header with minimalist CUVERSE branding (Exact match of image_88f30b.png) */}
+              <div className="flex justify-between items-center z-10 shrink-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping"></span>
-                  <span className="text-xs font-black tracking-widest uppercase font-mono">
-                    CU<span className="text-emerald-400">VERSE</span>
+                  <span className="w-3.5 h-3.5 bg-[#10B981] rounded-full"></span>
+                  <span className="text-[14px] font-black tracking-wider uppercase font-mono">
+                    CU<span className="text-[#10B981]">VERSE</span>
                   </span>
                 </div>
-                <span className="text-[8px] bg-white/10 backdrop-blur-sm px-2 py-0.5 rounded-full text-slate-300 font-mono">
+                <span className="text-[9px] bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-full text-slate-300 font-bold uppercase tracking-wider">
                   STREAK: {streak} DAYS
                 </span>
               </div>
 
-              {/* Story Center Metrics Wrap (Clean & Balanced) */}
-              <div className="space-y-1.5 z-10 my-auto text-center">
-                <p className="text-[8px] text-slate-400 uppercase font-bold tracking-widest">
-                  ⚡ พลังงานลดโลกร้อนวันนี้
+              {/* Story Center Metrics Wrap (Clean & Balanced match with image_88f30b.png) */}
+              <div className="space-y-1.5 z-10 my-auto text-center shrink-0">
+                <p className="text-[10px] text-slate-300 uppercase font-extrabold tracking-widest flex items-center justify-center gap-1">
+                  <span className="text-[#f59e0b]">⚡</span> พลังงานลดโลกร้อนวันนี้
                 </p>
-                <h2 className="text-4xl font-black tracking-tight text-emerald-300 drop-shadow-md">
-                  {calculateTodayEnergySaved()} <span className="text-base font-light text-white">kWh</span>
+                <h2 className="text-5xl font-black tracking-tight text-[#10B981] drop-shadow-md">
+                  {calculateTodayEnergySaved()} <span className="text-xl font-light text-white">kWh</span>
                 </h2>
-                <p className="text-[9px] text-slate-400">
+                <p className="text-[11px] text-slate-300">
                   เทียบเท่าการประหยัดคาร์บอน <span className="font-extrabold text-white">{carbonSaved.toFixed(1)} kg</span>
                 </p>
               </div>
 
-              {/* Dynamic Action Badge Stamps Row (Prominent Highlighted Emojis) */}
-              <div className="z-10 bg-black/20 backdrop-blur-sm rounded-2xl p-2 border border-white/5 space-y-1">
-                <div className="flex justify-center gap-4 py-1">
+              {/* Dynamic Action Badge Stamps Row (Matches bottom tray of image_88f30b.png) */}
+              <div className="z-10 bg-black/35 backdrop-blur-md rounded-3xl p-3 border border-white/5 space-y-1 shrink-0">
+                <div className="flex justify-around items-center py-0.5">
                   {getTodayBadges().map((badge, idx) => (
                     <div 
                       key={idx}
-                      className="flex flex-col items-center gap-0.5 hover:scale-110 transition-transform"
+                      className="flex flex-col items-center gap-0.5"
                     >
-                      <span className="text-3xl drop-shadow-lg filter saturate-125 select-none animate-bounce" style={{ animationDelay: `${idx * 150}ms` }}>
+                      <span className="text-2xl drop-shadow-lg filter saturate-125 select-none transform transition-transform duration-200">
                         {badge.emoji}
                       </span>
-                      <span className="text-[8px] font-bold text-slate-400 tracking-tighter uppercase font-mono">
+                      <span className="text-[8px] font-extrabold text-slate-400 tracking-wider uppercase font-mono mt-0.5">
                         {badge.label}
                       </span>
                     </div>
@@ -1141,14 +1141,14 @@ export default function App() {
               </div>
 
               {/* Story Card Footer branding */}
-              <div className="flex justify-between items-center pt-2 border-t border-white/5 z-10 text-[8px] text-slate-500 font-mono">
-                <span>📍 CHULALONGKORN UNIV.</span>
-                <span className="text-emerald-400 font-bold">13.7367° N, 100.5331° E</span>
+              <div className="flex justify-between items-center pt-2 z-10 text-[9px] text-slate-400 font-mono tracking-wide shrink-0">
+                <span className="flex items-center gap-1">📍 CHULALONGKORN UNIV.</span>
+                <span className="text-[#10B981] font-bold">13.7367° N, 100.5331° E</span>
               </div>
             </div>
 
             {/* Action buttons */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               <button
                 onClick={handleExportPNG}
                 className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-black text-[10.5px] flex items-center justify-center gap-1 shadow-md transition-colors"
