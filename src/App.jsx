@@ -40,10 +40,13 @@ export default function App() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [storyTheme, setStoryTheme] = useState('emerald'); // emerald, cyberpunk, aurora, sunset, transparent
   const [html2canvasLoaded, setHtml2canvasLoaded] = useState(false);
+  const [exportedImageUrl, setExportedImageUrl] = useState(null); // Base64 image URL for mobile download fallback
+  const [isExportedImageModalOpen, setIsExportedImageModalOpen] = useState(false);
+  
   const storyCardRef = useRef(null);
 
   useEffect(() => {
-    // Dynamic import of html2canvas via CDN
+    // Dynamic import of html2canvas via CDN for image exporting
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
     script.async = true;
@@ -84,6 +87,8 @@ export default function App() {
         total += activityEnergyValues[questId];
       }
     });
+    // Ensure if they just started, it defaults to a realistic visual baseline like 5.90 kWh
+    if (total === 0) return "5.90";
     return total.toFixed(2);
   };
 
@@ -99,10 +104,12 @@ export default function App() {
     if (completedQuests.includes('q_proj') || completedQuests.includes('q_phantom')) badges.push({ emoji: '🔌', label: 'Patrol', desc: 'ปิดอุปกรณ์ไฟฟ้าห้องเรียน' });
     if (completedQuests.includes('q_fume') || completedQuests.includes('q_freezer')) badges.push({ emoji: '🧪', label: 'Lab Duty', desc: 'คุมแล็บรักษ์พลังงาน' });
 
-    // Fallback if they haven't done anything today yet, show default beginner badges
+    // Fallback if they haven't done anything today yet, show default beginner badges (matches image_8885eb.png)
     if (badges.length === 0) {
-      badges.push({ emoji: '🎒', label: 'Cadet', desc: 'นิสิตผู้พิทักษ์คาร์บอน' });
-      badges.push({ emoji: '🌱', label: 'Eco', desc: 'เริ่มต้นรักษ์โลก' });
+      badges.push({ emoji: '👟', label: 'Walk', desc: 'เดินเรียนประหยัดคาร์บอน' });
+      badges.push({ emoji: '🍱', label: 'Bento', desc: 'คืนกล่องข้าวหมุนเวียน' });
+      badges.push({ emoji: '💧', label: 'Water', desc: 'พกกระบอกน้ำลดขวดพลาสติก' });
+      badges.push({ emoji: '🔌', label: 'Patrol', desc: 'ตรวจเช็คระบบไฟฟ้าห้องเรียน' });
     }
     return badges;
   };
@@ -260,16 +267,23 @@ export default function App() {
     }
     if (storyCardRef.current) {
       window.html2canvas(storyCardRef.current, {
-        scale: 3, // Premium quality render
+        scale: 3, // Premium rendering quality
         useCORS: true,
         backgroundColor: null
       }).then(canvas => {
         const image = canvas.toDataURL("image/png");
+        setExportedImageUrl(image);
+        setIsExportedImageModalOpen(true); // Open the preview fallback modal for mobile tap-to-hold support
+        
+        // Native browser link fallback
         const link = document.createElement("a");
         link.href = image;
         link.download = `cuverse_story_${storyTheme}.png`;
+        document.body.appendChild(link); // Required for mobile browsers/firefox compatibility
         link.click();
-        triggerToast("💾 บันทึกกรีนการ์ดมินิมอลสำเร็จ! พร้อมแชร์ลง IG Story แล้ว");
+        document.body.removeChild(link);
+        
+        triggerToast("💾 ประมวลผลกรีนการ์ดสำเร็จ! (แตะค้างที่รูปภาพเพื่อบันทึกบนมือถือ)");
       }).catch(err => {
         console.error("Canvas export failed", err);
         triggerToast("เกิดข้อผิดพลาดในการเซฟภาพ กรุณาลองใหม่อีกครั้ง", "error");
@@ -281,11 +295,11 @@ export default function App() {
     <div className="flex flex-col lg:flex-row gap-8 justify-center items-center min-h-screen bg-slate-950 font-sans p-6 antialiased text-slate-800">
       
       {/* LEFT COLUMN: Project branding and info */}
-      <div className="max-w-md text-white space-y-4 px-4">
+      <div className="max-w-md text-white space-y-4 px-4 text-center lg:text-left">
         <div className="inline-flex items-center gap-2 bg-pink-500/10 border border-pink-500/20 text-pink-400 px-3 py-1.5 rounded-full text-xs font-semibold">
-          <Sparkles className="w-3.5 h-3.5" /> Hackathon Prototype v2.6 (RES Engine)
+          <Sparkles className="w-3.5 h-3.5" /> Hackathon Prototype v3.0 (RES Engine)
         </div>
-        <h2 className="text-3xl font-black tracking-tight leading-tight bg-gradient-to-r from-pink-500 via-rose-400 to-emerald-400 bg-clip-text text-transparent">
+        <h2 className="text-4xl font-black tracking-tight leading-tight bg-gradient-to-r from-pink-500 via-rose-400 to-emerald-400 bg-clip-text text-transparent">
           CU Eco-Verse
         </h2>
       </div>
@@ -347,7 +361,7 @@ export default function App() {
                     <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
                       ENG-GUILD
                     </span>
-                    <h3 className="text-base font-black mt-1">เกียรติศักดิ์ วิศวฯ ปี 1</h3>
+                    <h3 className="text-base font-black mt-1">เกียรสศักดิ์ วิศวฯ ปี 1</h3>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] text-pink-200">Carbon Hero</p>
@@ -383,7 +397,10 @@ export default function App() {
 
               {/* Strava Share Dynamic Story Generator Trigger */}
               <button
-                onClick={() => setIsShareModalOpen(true)}
+                onClick={() => {
+                  setExportedImageUrl(null); // Reset URL before generating
+                  setIsShareModalOpen(true);
+                }}
                 className="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white p-3.5 rounded-2xl border border-emerald-500/25 shadow-md flex items-center justify-between transition-all font-black text-[11px] uppercase tracking-wide group"
               >
                 <span className="flex items-center gap-2">
@@ -428,7 +445,7 @@ export default function App() {
                     น้อง Greeny ท้าทาย! <Sparkles className="w-3.5 h-3.5 text-pink-500 fill-pink-500" />
                   </h4>
                   <p className="text-[10px] text-slate-600 mt-0.5 leading-relaxed">
-                    "ยินดีต้อนรับสู่อารยธรรมคาร์บอนต่ำในจุฬาฯ! ลองกดเมนูด้านล่าง เพื่อทำเควสและเดินประหยัดพลังงานกันได้เลยครับ!"
+                    "ยินดีต้อนรับสู่อารยธรรมคาร์บอนต่ำในจุฬาฯ! ลองกดเมนูด้านล่าง เพื่อทำเควสและเดินเรียนแบบประหยัดพลังงานกันได้เลยครับ!"
                   </p>
                 </div>
               </div>
@@ -850,70 +867,100 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Leaderboard rankings */}
+              {/* Leaderboard rankings adjusted to use exact formula calculations */}
               <div className="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-xs space-y-3.5">
                 <div className="flex justify-between items-center">
                   <h4 className="text-xs font-black text-slate-800 tracking-tight flex items-center gap-1">
-                    <Users className="w-4 h-4 text-pink-600" /> ตารางคะแนนและกิลด์ระหว่างคณะ (Guilds)
+                    <Award className="w-4 h-4 text-pink-600 animate-pulse" /> Faculty Leaderboard (RES-Rank)
                   </h4>
                   <span className="text-[9px] text-slate-400 font-semibold">ฤดูกาลที่ 1</span>
                 </div>
 
                 <div className="space-y-2.5">
-                  {/* Guild Rank 1 */}
-                  <div className="bg-gradient-to-r from-emerald-50 to-emerald-50/20 border border-emerald-100 rounded-2xl p-3 flex justify-between items-start">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-700 font-black text-xs flex items-center justify-center">
-                        👑 1
+                  {/* Guild Rank 1: Engineering */}
+                  {/* Calculation: Saving 24%, Clean Energy 55%, Participation 85% -> RES = 45.5 */}
+                  <div className="bg-gradient-to-r from-emerald-50 to-emerald-50/20 border border-emerald-100 rounded-2xl p-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-700 font-black text-xs flex items-center justify-center">
+                          👑 1
+                        </div>
+                        <div>
+                          <h5 className="text-[11px] font-bold text-slate-800">วิศวกรรมศาสตร์ (ENG)</h5>
+                          <p className="text-[9px] text-slate-500">พลังสะอาดสะสมลดได้: <span className="font-extrabold text-emerald-600">2,450 kWh</span></p>
+                        </div>
                       </div>
-                      <div>
-                        <h5 className="text-[11px] font-bold text-slate-800">วิศวกรรมศาสตร์ (ENG-Guild)</h5>
-                        <p className="text-[9px] text-slate-500">พลังสะอาดสะสมลดได้: <span className="font-extrabold text-emerald-600">2,450 kWh</span></p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-xs font-black text-emerald-700 block">45.5 RES</span>
-                      <span className="text-[8px] text-slate-400">แชมป์ปิดสวิตช์ห้อง</span>
-                    </div>
-                  </div>
-
-                  {/* Guild Rank 2 */}
-                  <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3 flex justify-between items-start">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 text-slate-700 font-black text-xs flex items-center justify-center">
-                        2
-                      </div>
-                      <div>
-                        <h5 className="text-[11px] font-bold text-slate-800">วิทยาศาสตร์ (SCI-Guild)</h5>
-                        <p className="text-[9px] text-slate-500">พลังสะอาดสะสมลดได้: <span className="font-semibold text-slate-700">1,980 kWh</span></p>
+                      <div className="text-right">
+                        <span className="text-xs font-black text-emerald-700 block">45.5 RES</span>
+                        <span className="text-[8px] text-slate-400">ตัวคูณ x1.2</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-xs font-black text-slate-700 block">42.0 RES</span>
-                      <span className="text-[8px] text-slate-400">แชมป์ดูแลห้องแล็บ</span>
+                    {/* Visual RES sub-metrics values */}
+                    <div className="mt-2 pt-2 border-t border-slate-100 flex justify-between text-[8px] font-mono text-slate-500">
+                      <span>ประหยัดไฟ: 24% (x0.5)</span>
+                      <span>หมุนเวียน: 55% (x0.3)</span>
+                      <span>ส่วนร่วม: 85% (x0.2)</span>
                     </div>
                   </div>
 
-                  {/* Guild Rank 3 */}
-                  <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3 flex justify-between items-start">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 text-slate-700 font-black text-xs flex items-center justify-center">
-                        3
+                  {/* Guild Rank 2: Science */}
+                  {/* Calculation: Saving 18%, Clean Energy 60%, Participation 75% -> RES = 42.0 */}
+                  <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 text-slate-700 font-black text-xs flex items-center justify-center">
+                          2
+                        </div>
+                        <div>
+                          <h5 className="text-[11px] font-bold text-slate-800">วิทยาศาสตร์ (SCI)</h5>
+                          <p className="text-[9px] text-slate-500">พลังสะอาดสะสมลดได้: <span className="font-semibold text-slate-700">1,980 kWh</span></p>
+                        </div>
                       </div>
-                      <div>
-                        <h5 className="text-[11px] font-bold text-slate-800">สถาปัตยกรรมศาสตร์ (ARC)</h5>
-                        <p className="text-[9px] text-slate-500">พลังสะอาดสะสมลดได้: <span className="font-semibold text-slate-700">1,420 kWh</span></p>
+                      <div className="text-right">
+                        <span className="text-xs font-black text-slate-700 block">42.0 RES</span>
+                        <span className="text-[8px] text-slate-400">ตัวคูณ x1.1</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-xs font-black text-slate-500 block">37.5 RES</span>
-                      <span className="text-[8px] text-slate-400">แชมป์เดินประหยัดไฟ</span>
+                    {/* Visual RES sub-metrics values */}
+                    <div className="mt-2 pt-2 border-t border-slate-100/60 flex justify-between text-[8px] font-mono text-slate-400">
+                      <span>ประหยัดไฟ: 18% (x0.5)</span>
+                      <span>หมุนเวียน: 60% (x0.3)</span>
+                      <span>ส่วนร่วม: 75% (x0.2)</span>
+                    </div>
+                  </div>
+
+                  {/* Guild Rank 3: Architecture */}
+                  {/* Calculation: Saving 15%, Clean Energy 40%, Participation 90% -> RES = 37.5 */}
+                  <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 text-slate-700 font-black text-xs flex items-center justify-center">
+                          3
+                        </div>
+                        <div>
+                          <h5 className="text-[11px] font-bold text-slate-800">สถาปัตยกรรมศาสตร์ (ARC)</h5>
+                          <p className="text-[9px] text-slate-500">พลังสะอาดสะสมลดได้: <span className="font-semibold text-slate-700">1,420 kWh</span></p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-black text-slate-500 block">37.5 RES</span>
+                        <span className="text-[8px] text-slate-400">ตัวคูณ x1.0</span>
+                      </div>
+                    </div>
+                    {/* Visual RES sub-metrics values */}
+                    <div className="mt-2 pt-2 border-t border-slate-100/60 flex justify-between text-[8px] font-mono text-slate-400">
+                      <span>ประหยัดไฟ: 15% (x0.5)</span>
+                      <span>หมุนเวียน: 40% (x0.3)</span>
+                      <span>ส่วนร่วม: 90% (x0.2)</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 text-[9px] text-slate-500 leading-normal">
-                  💡 <span className="font-extrabold text-slate-700">กติกาการแข่งแบบร่วมมือ:</span> ยิ่งคนในคณะร่วมใจทำเควสและเดินเรียนเยอะขึ้น ตัวคูณ Multiplier ของคณะจะยิ่งสูง ซึ่งจะช่วยเปลี่ยนโซลาร์พลังงานเป็นเหรียญเงินกิจกรรมคณะได้มากขึ้นเท่านั้น!
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 text-[9px] text-slate-500 leading-normal flex items-start gap-1.5">
+                  <span className="text-emerald-600 text-base shrink-0">💡</span>
+                  <p>
+                    <span className="font-extrabold text-slate-700">กลไกการปรับเปลี่ยนพฤติกรรม:</span> ยิ่งคนในกิลด์ช่วยกันกดยืนยันปิดแอร์ห้องเรียน หรือเพิ่มสัดส่วนพลังงาน Solar-Share คณะคุณจะได้รับคะแนน **RES สูงสุด** ประจำสัปดาห์!
+                  </p>
                 </div>
               </div>
 
@@ -1011,7 +1058,10 @@ export default function App() {
                 {['emerald', 'cyberpunk', 'aurora', 'sunset', 'transparent'].map(t => (
                   <button
                     key={t}
-                    onClick={() => setStoryTheme(t)}
+                    onClick={() => {
+                      setStoryTheme(t);
+                      setExportedImageUrl(null); // Force re-render of generated base64 image on theme changes
+                    }}
                     title={t === 'transparent' ? 'พื้นหลังโปร่งใส' : `ธีม ${t}`}
                     className={`w-5 h-5 rounded-full border ${
                       t === 'emerald' ? 'bg-emerald-600 border-emerald-400' :
@@ -1113,6 +1163,36 @@ export default function App() {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE-FRIENDLY PHOTO FALLBACK OVERLAY (Solves line/safari downloading blocks) */}
+      {isExportedImageModalOpen && exportedImageUrl && (
+        <div className="fixed inset-0 bg-black/95 flex flex-col items-center justify-center z-[1000] p-4 select-none">
+          <div className="max-w-[340px] text-center space-y-4">
+            <h3 className="text-white text-sm font-black flex items-center justify-center gap-1.5">
+              <Sparkles className="w-5 h-5 text-emerald-400 animate-pulse" /> บันทึกรูปภาพกรีนการ์ด
+            </h3>
+            
+            <p className="text-xs text-slate-300 leading-relaxed">
+              แตะค้างที่รูปภาพด้านล่างเพื่อเลือก <span className="text-emerald-400 font-bold">"บันทึกรูปภาพ" (Save Image)</span> ลงในอุปกรณ์ของคุณเพื่อโพสต์ลง IG Story ต่อได้ทันที!
+            </p>
+
+            <div className="border border-slate-800 rounded-[28px] overflow-hidden bg-slate-900/50 shadow-2xl">
+              <img 
+                src={exportedImageUrl} 
+                alt="CU Eco-Verse Exported Story" 
+                className="w-full h-auto select-all max-h-[380px] object-contain pointer-events-auto"
+              />
+            </div>
+
+            <button
+              onClick={() => setIsExportedImageModalOpen(false)}
+              className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-colors"
+            >
+              ย้อนกลับหน้าแรก
+            </button>
           </div>
         </div>
       )}
