@@ -51,6 +51,7 @@ export default function App() {
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
     script.async = true;
     script.onload = () => setHtml2canvasLoaded(true);
+    script.onerror = () => console.error("html2canvas library failed to load");
     document.head.appendChild(script);
     return () => {
       document.head.removeChild(script);
@@ -257,13 +258,14 @@ export default function App() {
   };
 
   const generatePreviewImage = () => {
-    if (!html2canvasLoaded) return;
+    if (!html2canvasLoaded || !storyCardRef.current) return;
     setGenerating(true);
     
+    // Slight defer to guarantee complete DOM settlement before shooting
     setTimeout(() => {
       if (storyCardRef.current && window.html2canvas) {
         window.html2canvas(storyCardRef.current, {
-          scale: 3, // Enhanced output sharpness
+          scale: 2, // Optimized sharpness for high-speed delivery
           useCORS: true,
           backgroundColor: null,
           logging: false
@@ -278,10 +280,10 @@ export default function App() {
       } else {
         setGenerating(false);
       }
-    }, 450); // Balanced timeout ensuring complete state layout updates
+    }, 200);
   };
 
-  // Re-generate PNG preview when dependencies or color selections change
+  // Automatically trigger rendering update on tab state shifts
   useEffect(() => {
     if (isShareModalOpen && html2canvasLoaded) {
       generatePreviewImage();
@@ -290,7 +292,8 @@ export default function App() {
 
   const handleExportPNG = () => {
     if (!exportedImageUrl) {
-      triggerToast("กรุณารอระบบประมวลผลความละเอียดภาพสักครู่...", "info");
+      triggerToast("กำลังเตรียมไฟล์รูปความละเอียดสูง โปรดกดอีกครั้งสักครู่...", "info");
+      generatePreviewImage();
       return;
     }
     
@@ -1092,101 +1095,89 @@ export default function App() {
               </div>
             </div>
 
-            {/* REAL STORY CARD DOM CONTAINER (Matches image_88f30b.png precisely) */}
-            <div className="relative flex justify-center items-center w-[328px] h-[370px] mx-auto rounded-[36px] overflow-hidden bg-slate-950/40 border border-slate-800">
-              {isGenerating && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 z-20 gap-3">
-                  <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-[11px] font-bold text-slate-300">กำลังดีไซน์กรีนการ์ด...</p>
-                </div>
-              )}
+            {/* REAL STORY CARD DOM CONTAINER (Instantly Loaded HTML Preview with Invisible Overlay Image for touch-hold support) */}
+            <div className="relative flex justify-center items-center w-[328px] h-[370px] mx-auto rounded-[36px] overflow-hidden bg-slate-950/40">
               
-              {/* Real image for native touch-hold/long-press save support */}
-              {exportedImageUrl ? (
+              {/* INSTANT VISUALS: Real Interactive DOM Elements rendering instantly with zero delay! */}
+              <div 
+                ref={storyCardRef}
+                className={`w-[328px] h-[370px] rounded-[36px] relative p-6 overflow-hidden flex flex-col justify-between text-white transition-all duration-300 ${
+                  storyTheme === 'transparent' ? 'bg-transparent border-0' :
+                  storyTheme === 'emerald' ? 'bg-gradient-to-br from-[#022c22] via-[#041a16] to-[#010807] border border-slate-800' :
+                  storyTheme === 'cyberpunk' ? 'bg-gradient-to-br from-[#4a0422] via-[#210515] to-[#0a0209] border border-slate-800' :
+                  storyTheme === 'aurora' ? 'bg-gradient-to-br from-[#0c1033] via-[#051a24] to-[#010408] border border-slate-800' :
+                  'bg-gradient-to-br from-[#3b1704] via-[#1a0c02] to-[#080301] border border-slate-800'
+                }`}
+              >
+                {/* Background ambient watermarks */}
+                {storyTheme !== 'transparent' && (
+                  <>
+                    <div className="absolute right-[-30px] top-[-30px] w-48 h-48 bg-white/5 rounded-full blur-2xl animate-pulse" />
+                    <div className="absolute left-[-20px] bottom-[-20px] w-40 h-40 bg-emerald-500/5 rounded-full blur-2xl" />
+                  </>
+                )}
+
+                {/* Story Card Header with minimalist CUVERSE branding */}
+                <div className="flex justify-between items-center z-10 shrink-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3.5 h-3.5 bg-[#10B981] rounded-full"></span>
+                    <span className="text-[14px] font-black tracking-wider uppercase font-mono">
+                      CU<span className="text-[#10B981]">VERSE</span>
+                    </span>
+                  </div>
+                  <span className="text-[9px] bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-full text-slate-300 font-bold uppercase tracking-wider">
+                    STREAK: {streak} DAYS
+                  </span>
+                </div>
+
+                {/* Story Center Metrics Wrap */}
+                <div className="space-y-1.5 z-10 my-auto text-center shrink-0">
+                  <p className="text-[10px] text-slate-300 uppercase font-extrabold tracking-widest flex items-center justify-center gap-1">
+                    <span className="text-[#f59e0b]">⚡</span> พลังงานลดโลกร้อนวันนี้
+                  </p>
+                  <h2 className="text-5xl font-black tracking-tight text-[#10B981] drop-shadow-md">
+                    {calculateTodayEnergySaved()} <span className="text-xl font-light text-white">kWh</span>
+                  </h2>
+                  <p className="text-[11px] text-slate-300">
+                    เทียบเท่าการประหยัดคาร์บอน <span className="font-extrabold text-white">{carbonSaved.toFixed(1)} kg</span>
+                  </p>
+                </div>
+
+                {/* Dynamic Action Badge Stamps Row */}
+                <div className="z-10 bg-black/35 backdrop-blur-md rounded-3xl p-3 border border-white/5 space-y-1 shrink-0">
+                  <div className="flex justify-around items-center py-0.5">
+                    {getTodayBadges().map((badge, idx) => (
+                      <div 
+                        key={idx}
+                        className="flex flex-col items-center gap-0.5"
+                      >
+                        <span className="text-2xl drop-shadow-lg filter saturate-125 select-none transform transition-transform duration-200">
+                          {badge.emoji}
+                        </span>
+                        <span className="text-[8px] font-extrabold text-slate-400 tracking-wider uppercase font-mono mt-0.5">
+                          {badge.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Story Card Footer branding */}
+                <div className="flex justify-between items-center pt-2 z-10 text-[9px] text-slate-400 font-mono tracking-wide shrink-0">
+                  <span className="flex items-center gap-1">📍 CHULALONGKORN UNIV.</span>
+                  <span className="text-[#10B981] font-bold">13.7367° N, 100.5331° E</span>
+                </div>
+              </div>
+
+              {/* INVISIBLE OVERLAY IMAGE: Automatically populates on compile to enable Touch-Hold / Long-Press mobile saving! */}
+              {exportedImageUrl && (
                 <img 
                   src={exportedImageUrl} 
                   alt="CUVERSE Story Card" 
-                  className="w-full h-full object-contain pointer-events-auto select-all cursor-pointer"
+                  className="absolute inset-0 w-full h-full object-contain opacity-0 cursor-pointer pointer-events-auto select-all z-20"
                   title="แตะค้างเพื่อบันทึกรูปภาพ"
                 />
-              ) : (
-                <div className="text-center p-4">
-                  <p className="text-xs text-slate-400">กรุณารอระบบทำการสร้างภาพการ์ดสักครู่...</p>
-                </div>
               )}
-
-              {/* Hidden actual DOM card off-screen so html2canvas renders it cleanly */}
-              <div className="absolute opacity-0 pointer-events-none -z-50 left-[-9999px]">
-                <div 
-                  ref={storyCardRef}
-                  className={`w-[328px] h-[370px] rounded-[36px] relative p-6 overflow-hidden flex flex-col justify-between text-white transition-all duration-300 ${
-                    storyTheme === 'transparent' ? 'bg-transparent' :
-                    storyTheme === 'emerald' ? 'bg-gradient-to-br from-[#022c22] via-[#041a16] to-[#010807]' :
-                    storyTheme === 'cyberpunk' ? 'bg-gradient-to-br from-[#4a0422] via-[#210515] to-[#0a0209]' :
-                    storyTheme === 'aurora' ? 'bg-gradient-to-br from-[#0c1033] via-[#051a24] to-[#010408]' :
-                    'bg-gradient-to-br from-[#3b1704] via-[#1a0c02] to-[#080301]'
-                  }`}
-                >
-                  {/* Background ambient watermarks */}
-                  {storyTheme !== 'transparent' && (
-                    <>
-                      <div className="absolute right-[-30px] top-[-30px] w-48 h-48 bg-white/5 rounded-full blur-2xl animate-pulse" />
-                      <div className="absolute left-[-20px] bottom-[-20px] w-40 h-40 bg-emerald-500/5 rounded-full blur-2xl" />
-                    </>
-                  )}
-
-                  {/* Story Card Header with minimalist CUVERSE branding */}
-                  <div className="flex justify-between items-center z-10 shrink-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-3.5 h-3.5 bg-[#10B981] rounded-full"></span>
-                      <span className="text-[14px] font-black tracking-wider uppercase font-mono">
-                        CU<span className="text-[#10B981]">VERSE</span>
-                      </span>
-                    </div>
-                    <span className="text-[9px] bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-full text-slate-300 font-bold uppercase tracking-wider">
-                      STREAK: {streak} DAYS
-                    </span>
-                  </div>
-
-                  {/* Story Center Metrics Wrap */}
-                  <div className="space-y-1.5 z-10 my-auto text-center shrink-0">
-                    <p className="text-[10px] text-slate-300 uppercase font-extrabold tracking-widest flex items-center justify-center gap-1">
-                      <span className="text-[#f59e0b]">⚡</span> พลังงานลดโลกร้อนวันนี้
-                    </p>
-                    <h2 className="text-5xl font-black tracking-tight text-[#10B981] drop-shadow-md">
-                      {calculateTodayEnergySaved()} <span className="text-xl font-light text-white">kWh</span>
-                    </h2>
-                    <p className="text-[11px] text-slate-300">
-                      เทียบเท่าการประหยัดคาร์บอน <span className="font-extrabold text-white">{carbonSaved.toFixed(1)} kg</span>
-                    </p>
-                  </div>
-
-                  {/* Dynamic Action Badge Stamps Row */}
-                  <div className="z-10 bg-black/35 backdrop-blur-md rounded-3xl p-3 border border-white/5 space-y-1 shrink-0">
-                    <div className="flex justify-around items-center py-0.5">
-                      {getTodayBadges().map((badge, idx) => (
-                        <div 
-                          key={idx}
-                          className="flex flex-col items-center gap-0.5"
-                        >
-                          <span className="text-2xl drop-shadow-lg filter saturate-125 select-none transform transition-transform duration-200">
-                            {badge.emoji}
-                          </span>
-                          <span className="text-[8px] font-extrabold text-slate-400 tracking-wider uppercase font-mono mt-0.5">
-                            {badge.label}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Story Card Footer branding */}
-                  <div className="flex justify-between items-center pt-2 z-10 text-[9px] text-slate-400 font-mono tracking-wide shrink-0">
-                    <span className="flex items-center gap-1">📍 CHULALONGKORN UNIV.</span>
-                    <span className="text-[#10B981] font-bold">13.7367° N, 100.5331° E</span>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Action buttons */}
@@ -1200,8 +1191,7 @@ export default function App() {
               <div className="flex gap-2">
                 <button
                   onClick={handleExportPNG}
-                  disabled={isGenerating || !exportedImageUrl}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800/50 disabled:text-slate-500 text-white py-2.5 rounded-xl font-black text-[10.5px] flex items-center justify-center gap-1 shadow-md transition-colors"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-black text-[10.5px] flex items-center justify-center gap-1 shadow-md transition-colors"
                 >
                   <Download className="w-4 h-4" /> ดาวน์โหลด PNG
                 </button>
