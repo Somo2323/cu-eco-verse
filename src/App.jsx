@@ -31,14 +31,14 @@ export default function App() {
   const [coins, setCoins] = useState(380);
   const [carbonSaved, setCarbonSaved] = useState(42.5); // in kg CO2e
   const [streak, setStreak] = useState(4);
-  const [xp, setXp] = useState(1250);
+  const [xp, setXp] = useState(1180); // 1180/1200 XP: Ready to level up on first quest!
   const [level, setLevel] = useState(12);
   const [chosenRoute, setChosenRoute] = useState(null); // stores selected route ID
   const [completedQuests, setCompletedQuests] = useState([]); // INITIALIZED EMPTY: Let the user play and complete quests!
   
   const personalEnergySaved = (carbonSaved * 1.5).toFixed(1);
 
-  // Sharing states for Strava-style Story Exporter
+  // Sharing states for Story Exporter
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [storyTheme, setStoryTheme] = useState('cyberpunk'); // cyberpunk, emerald, aurora, sunset, transparent
   const [exportedImageUrl, setExportedImageUrl] = useState(null); // Holds generated Base64 image URL
@@ -70,6 +70,21 @@ export default function App() {
     q_streak: 5.00,
     q_raid: 8.00
   };
+
+  // Automatic leveling engine with Carryover XP calculation
+  useEffect(() => {
+    const needed = level * 100;
+    if (xp >= needed) {
+      setXp(prev => prev - needed);
+      setLevel(prev => {
+        const nextLevel = prev + 1;
+        setTimeout(() => {
+          triggerToast(`🎉 LEVEL UP! ตอนนี้คุณก้าวสู่ระดับ ${nextLevel} แล้ว!`, 'levelUp');
+        }, 80);
+        return nextLevel;
+      });
+    }
+  }, [xp, level]);
 
   // Helper calculating today energy metrics dynamically
   const calculateTodayEnergySaved = () => {
@@ -135,18 +150,8 @@ export default function App() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const xpNeededForNextLevel = level * 100;
-  
   const addXP = (amount) => {
-    let newXp = xp + amount;
-    let newLevel = level;
-    if (newXp >= xpNeededForNextLevel) {
-      newXp = newXp - xpNeededForNextLevel;
-      newLevel = level + 1;
-      triggerToast(`🎉 LEVEL UP! ตอนนี้คุณก้าวสู่ระดับ ${newLevel} แล้ว!`, 'levelUp');
-    }
-    setXp(newXp);
-    setLevel(newLevel);
+    setXp(prev => prev + amount);
   };
 
   // Structured Quest Data aligning with PDF/Slide 4 layout
@@ -178,7 +183,7 @@ export default function App() {
       triggerToast("คุณผ่านการรับรางวัลเควสนี้ในวันนี้ไปแล้วครับ", "info");
       return;
     }
-    setActiveVerificationQuest(quest);
+    setActiveVerificationQuest({ ...quest, isRoute: false });
     setVerificationStep(1);
     setScanningLogs([]);
     setIsScanningActive(false);
@@ -194,15 +199,31 @@ export default function App() {
     }, 600);
 
     setTimeout(() => {
-      setScanningLogs(prev => [...prev, `[HARDWARE] ดึงข้อมูลจาก CUBEMS/ตู้อัจฉริยะ เพื่อยืนยันพฤติกรรม...`]);
+      if (activeVerificationQuest.id.includes('bike')) {
+        setScanningLogs(prev => [...prev, `[AI-VISION] สตรีมกล้อง: ค้นหารายละเอียดสีเขียวและรูปแบบโครงรถ CU Bike...`]);
+      } else if (activeVerificationQuest.id.includes('pop')) {
+        setScanningLogs(prev => [...prev, `[QR-CODE] ค้นพบจุดสแกนบาร์โค้ดประจำเที่ยวรถ EV Shuttle...`]);
+      } else if (activeVerificationQuest.id.includes('walk')) {
+        setScanningLogs(prev => [...prev, `[OS-HEALTH] ตรวจดึงปริมาณก้าวเดินเรียลไทม์จากระบบปฏิบัติการมือถือ...`]);
+      } else {
+        setScanningLogs(prev => [...prev, `[HARDWARE] ดึงข้อมูลจาก CUBEMS/ตู้อัจฉริยะ เพื่อยืนยันพฤติกรรม...`]);
+      }
     }, 1200);
 
     setTimeout(() => {
-      setScanningLogs(prev => [...prev, `[TECT-VERIFY] API: ${activeVerificationQuest.verifyTech} ส่งสัญญาณตอบรับ... SUCCESS ✅`]);
+      if (activeVerificationQuest.id.includes('bike')) {
+        setScanningLogs(prev => [...prev, `[AI-VISION] ยืนยันพฤติกรรมปั่นจักรยาน CU Bike จริง (Confidence: 96.8%) ✅`]);
+      } else if (activeVerificationQuest.id.includes('pop')) {
+        setScanningLogs(prev => [...prev, `[BUS-TELEMETRY] ดึงค่า GPS ตัวรถตรงกับตัวนิสิต: #EV-ROUTE-CHECKIN ✅`]);
+      } else if (activeVerificationQuest.id.includes('walk')) {
+        setScanningLogs(prev => [...prev, `[GPS-GEOFENCE] เส้นทางลากก้าวเดินผูกติดเขตสวนป่าจามจุรี (Multiplier 1.25x) ✅`]);
+      } else {
+        setScanningLogs(prev => [...prev, `[TECT-VERIFY] API: ${activeVerificationQuest.verifyTech} ส่งสัญญาณตอบรับ... SUCCESS ✅`]);
+      }
     }, 2000);
 
     setTimeout(() => {
-      setScanningLogs(prev => [...prev, `[AI-ENGINE] วิเคราะห์ข้อมูลรูปภาพสตรีม: ตรวจสอบสถานะความรักษ์โลกเรียบร้อยแล้ว!`]);
+      setScanningLogs(prev => [...prev, `[AI-ENGINE] วิเคราะห์ความถูกต้องเรียบร้อยแล้ว ได้รับการอนุมัติ!`]);
     }, 2700);
 
     setTimeout(() => {
@@ -213,7 +234,12 @@ export default function App() {
 
   // INTERNAL CORE CLAIM MECHANIC (Centralized state updates)
   const executeRewardCredits = (q) => {
-    setCompletedQuests(prev => [...prev, q.id]);
+    if (q.isRoute) {
+      setChosenRoute(q.id);
+    } else {
+      setCompletedQuests(prev => [...prev, q.id]);
+    }
+
     setCoins(prev => prev + q.reward);
     setCarbonSaved(prev => +(prev + q.carbon).toFixed(1));
     addXP(q.xp);
@@ -221,7 +247,7 @@ export default function App() {
 
     const newTx = {
       id: Date.now(),
-      title: `ทำเควส ${q.title} สำเร็จ`,
+      title: q.isRoute ? `เดินทางด้วย ${q.title}` : `ทำเควส ${q.title} สำเร็จ`,
       change: q.reward,
       type: 'earn',
       date: 'วันนี้'
@@ -252,45 +278,54 @@ export default function App() {
 
   // Genuine Chula Transit and Walkways Choices
   const routesData = [
-    { id: 'r_walk_forest', title: 'เดินลัดเลาะสระน้ำจุฬาฯ และสวนป่า', desc: 'จากอาคารวิศวฯ 3 เดินเลี่ยงแดดใต้จามจุรีไปยังหอสมุดกลาง', time: '7 นาที', dist: '450m', carbon: '0g', coins: 25, isEco: true, color: 'emerald' },
-    { id: 'r_walk_centenary', title: 'เดินรับลมลัดอุทยาน 100 ปี จุฬาฯ', desc: 'จากสโมสรศาลาพระเกี้ยว มุ่งหน้าสู่คณะพาณิชย์การบัญชีฯ', time: '12 นาที', dist: '850m', carbon: '0g', coins: 35, isEco: true, color: 'emerald' },
-    { id: 'r_bike_angry', title: 'ปั่นจักรยาน CU Bike เลียบอังรีดูนังต์', desc: 'ทางเฉพาะจักรยานสีเขียวเชื่อมหน้าอักษรฯ ไปศาลาพระเกี้ยว', time: '4 นาที', dist: '600m', carbon: '4g', coins: 15, isEco: true, color: 'indigo' },
-    { id: 'r_pop_l1', title: 'รถป๊อบจุฬาฯ EV Shuttle Line 1', desc: 'โดยสารรถพลังงานไฟฟ้า 100% (สระน้ำจุฬาฯ - BTS สยาม)', time: '5 นาที', dist: '1.1km', carbon: '12g', coins: 8, isEco: false, color: 'pink' },
-    { id: 'r_pop_l2', title: 'รถป๊อบจุฬาฯ EV Shuttle Line 2', desc: 'รถเมล์ไฟฟ้าสวัสดิการเลียบสามย่าน (คณะวิศวฯ - สวนหลวงสแควร์)', time: '6 นาที', dist: '1.3km', carbon: '14g', coins: 8, isEco: false, color: 'pink' },
-    { id: 'r_motorcycle', title: 'วินมอเตอร์ไซค์รับจ้าง (มอเตอร์ไซค์น้ำมัน)', desc: 'เดินทางด่วนข้ามตึกเรียนด้วยวินเครื่องยนต์เบนซินแบบเดิม', time: '2 นาที', dist: '700m', carbon: '150g', coins: 0, isEco: false, color: 'slate' }
+    { id: 'r_walk_forest', title: 'เดินลัดเลาะสระน้ำจุฬาฯ และสวนป่า', desc: 'จากอาคารวิศวฯ 3 เดินเลี่ยงแดดใต้จามจุรีไปยังหอสมุดกลาง', time: '7 นาที', dist: '450m', carbon: '0g', coins: 25, isEco: true, color: 'emerald', verifyTech: 'OS HealthKit APIs + iOS/Android GPS Geofencing' },
+    { id: 'r_walk_centenary', title: 'เดินรับลมลัดอุทยาน 100 ปี จุฬาฯ', desc: 'จากสโมสรศาลาพระเกี้ยว มุ่งหน้าสู่คณะพาณิชย์การบัญชีฯ', time: '12 นาที', dist: '850m', carbon: '0g', coins: 35, isEco: true, color: 'emerald', verifyTech: 'OS HealthKit APIs + iOS/Android GPS Geofencing' },
+    { id: 'r_bike_angry', title: 'ปั่นจักรยาน CU Bike เลียบอังรีดูนังต์', desc: 'ทางเฉพาะจักรยานสีเขียวเชื่อมหน้าอักษรฯ ไปศาลาพระเกี้ยว', time: '4 นาที', dist: '600m', carbon: '4g', coins: 15, isEco: true, color: 'indigo', verifyTech: 'Edge AI Object Detection Camera + App' },
+    { id: 'r_pop_l1', title: 'รถป๊อบจุฬาฯ EV Shuttle Line 1', desc: 'โดยสารรถพลังงานไฟฟ้า 100% (สระน้ำจุฬาฯ - BTS สยาม)', time: '5 นาที', dist: '1.1km', carbon: '12g', coins: 8, isEco: false, color: 'pink', verifyTech: 'EV Bus Smart QR Code Sticker Scanner' },
+    { id: 'r_pop_l2', title: 'รถป๊อบจุฬาฯ EV Shuttle Line 2', desc: 'รถเมล์ไฟฟ้าสวัสดิการเลียบสามย่าน (คณะวิศวฯ - สวนหลวงสแควร์)', time: '6 นาที', dist: '1.3km', carbon: '14g', coins: 8, isEco: false, color: 'pink', verifyTech: 'EV Bus Smart QR Code Sticker Scanner' },
+    { id: 'r_motorcycle', title: 'วินมอเตอร์ไซค์รับจ้าง (มอเตอร์ไซค์น้ำมัน)', desc: 'เดินทางด่วนข้ามตึกเรียนด้วยวินเครื่องยนต์เบนซินแบบเดิม', time: '2 นาที', dist: '700m', carbon: '150g', coins: 0, isEco: false, color: 'slate', verifyTech: 'None (High Emission)' }
   ];
 
+  // Route selection triggers verification unless it is a petrol motorcycle
   const handleSelectRoute = (route) => {
     if (chosenRoute) {
       triggerToast("คุณได้เดินทางสำหรับเส้นทางวันนี้เสร็จสิ้นไปแล้ว!", "info");
       return;
     }
 
-    setChosenRoute(route.id);
-    let finalReward = route.coins;
-    let textBonus = "";
-
-    if (route.isEco) {
-      finalReward += 5;
-      textBonus = " + โบนัสเดินเรียนสีเขียว 5 🪙!";
-      setStreak(prev => prev + 1);
+    if (route.id === 'r_motorcycle') {
+      // Petrol motorcycle requires no eco-verification, inflicts bad impact instantly
+      setChosenRoute(route.id);
+      const newTx = {
+        id: Date.now(),
+        title: `เดินทางด้วย ${route.title}`,
+        change: 0,
+        type: 'spend',
+        date: 'วันนี้'
+      };
+      setTransactions([newTx, ...transactions]);
+      triggerToast("⚠️ มอเตอร์ไซค์น้ำมันปล่อยคาร์บอนสูงสุด (150g) ไม่ได้รับแต้มรางวัล แนะนำใช้ยานพาหนะไฟฟ้าครับ", "warning");
+      return;
     }
 
-    setCoins(prev => prev + finalReward);
-    const carbonDelta = +((150 - parseInt(route.carbon)) / 1000).toFixed(2);
-    setCarbonSaved(prev => +(prev + Math.max(0, carbonDelta)).toFixed(2));
-    addXP(30);
-
-    const newTx = {
-      id: Date.now(),
-      title: `เดินทางด้วย ${route.title}`,
-      change: finalReward,
-      type: 'earn',
-      date: 'วันนี้'
+    // Eco transits open the 3-step verification modal
+    const mappedRouteAsQuest = {
+      id: route.id,
+      title: route.title,
+      desc: route.desc,
+      reward: route.coins + (route.isEco ? 5 : 0), // Includes eco bonus
+      xp: 30,
+      carbon: +((150 - parseInt(route.carbon)) / 1000).toFixed(2), // saved carbon in kg
+      location: 'Chulalongkorn Campus',
+      verifyTech: route.verifyTech,
+      icon: route.id.includes('walk') ? '👟' : route.id.includes('bike') ? '🚲' : '🚌',
+      isRoute: true
     };
-    setTransactions([newTx, ...transactions]);
 
-    triggerToast(`🚲 เดินทางสำเร็จ! ได้รับ ${finalReward} 🪙${textBonus}`);
+    setActiveVerificationQuest(mappedRouteAsQuest);
+    setVerificationStep(1);
+    setScanningLogs([]);
+    setIsScanningActive(false);
   };
 
   const rewardsList = [
@@ -622,7 +657,7 @@ export default function App() {
                     <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
                       ENG-GUILD
                     </span>
-                    <h3 className="text-base font-black mt-1">ศิลา วิศวฯ ปี 1</h3>
+                    <h3 className="text-base font-black mt-1">เกียรตศักดิ์ วิศวฯ ปี 1</h3>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] text-pink-200">Carbon Hero</p>
@@ -633,10 +668,10 @@ export default function App() {
                 <div className="mt-4 space-y-1">
                   <div className="flex justify-between text-[10px] font-semibold text-pink-100">
                     <span>ค่าประสบการณ์ (XP)</span>
-                    <span>{xp}/{xpNeededForNextLevel} XP</span>
+                    <span>{xp}/{level * 100} XP</span>
                   </div>
                   <div className="w-full bg-black/20 h-2 rounded-full overflow-hidden">
-                    <div className="bg-emerald-400 h-full rounded-full transition-all duration-500" style={{ width: `${(xp / xpNeededForNextLevel) * 100}%` }}></div>
+                    <div className="bg-emerald-400 h-full rounded-full transition-all duration-500" style={{ width: `${(xp / (level * 100)) * 100}%` }}></div>
                   </div>
                 </div>
 
@@ -876,7 +911,7 @@ export default function App() {
                                 : 'bg-slate-800 hover:bg-slate-900 text-white'
                             }`}
                           >
-                            +{route.coins}🪙
+                            ทำภารกิจ
                           </button>
                         )}
                       </div>
@@ -888,7 +923,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 3: QUESTS BOARD (Slide 4 Entrance Point) */}
+          {/* TAB 3: QUESTS BOARD */}
           {activeTab === 'quests' && (
             <div className="p-4 space-y-4 animate-fadeIn">
               
@@ -1240,7 +1275,9 @@ export default function App() {
                     {activeVerificationQuest.icon}
                   </div>
                   <div>
-                    <span className="text-[10px] text-pink-400 font-extrabold tracking-widest uppercase">QUEST BRIEFING</span>
+                    <span className="text-[10px] text-pink-400 font-extrabold tracking-widest uppercase">
+                      {activeVerificationQuest.isRoute ? 'TRANSIT BRIEFING' : 'QUEST BRIEFING'}
+                    </span>
                     <h3 className="text-xl font-black mt-1">{activeVerificationQuest.title}</h3>
                     <p className="text-xs text-slate-400 mt-2 px-4 leading-relaxed">{activeVerificationQuest.desc}</p>
                   </div>
@@ -1248,7 +1285,7 @@ export default function App() {
                   <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 text-left space-y-2.5">
                     <div className="flex justify-between text-[11px]">
                       <span className="text-slate-500">📍 สถานที่ตั้งเควส:</span>
-                      <span className="text-slate-300 font-bold">{activeVerificationQuest.location}</span>
+                      <span className="text-slate-300 font-bold text-right max-w-[180px]">{activeVerificationQuest.location}</span>
                     </div>
                     <div className="flex justify-between text-[11px]">
                       <span className="text-slate-500">🔌 เทคโนโลยีการทวนสอบ:</span>
@@ -1299,9 +1336,16 @@ export default function App() {
                   <div className="absolute left-0 right-0 h-0.5 bg-emerald-400 shadow-lg shadow-emerald-400/50 animate-bounce top-1/2 z-10"></div>
                   
                   {/* Vector mock image preview based on quest item */}
-                  <div className="text-center opacity-70 z-0 select-none">
+                  <div className="text-center opacity-70 z-0 select-none px-4">
                     <span className="text-7xl block mb-2 animate-pulse">{activeVerificationQuest.icon}</span>
-                    <p className="text-[10px] text-slate-400">CAMERA PREVIEW: [{activeVerificationQuest.title}]</p>
+                    
+                    {activeVerificationQuest.id.includes('bike') ? (
+                      <p className="text-[9px] text-slate-400">กรุณาจัดเฟรมภาพให้เห็นรหัส Green CU Bike เพื่อให้ AI ตรวจจับวิเคราะห์สีและโครงสร้างรถ...</p>
+                    ) : activeVerificationQuest.id.includes('pop') ? (
+                      <p className="text-[9px] text-slate-400">กรุณาสแกน QR Code สติ๊กเกอร์ตรวจทวนความถี่รถป๊อบไฟฟ้าสวัสดิการที่ติดอยู่ในห้องโดยสาร...</p>
+                    ) : (
+                      <p className="text-[9px] text-slate-400">CAMERA PREVIEW: [{activeVerificationQuest.title}]</p>
+                    )}
                   </div>
 
                   {/* Scanning Status Badge */}
@@ -1331,7 +1375,7 @@ export default function App() {
                 </div>
 
                 <div className="text-center">
-                  <p className="text-[10px] text-slate-400">กรุณาสแกน QR Code ที่เครื่องใช้ไฟฟ้า หรือตู้อัจฉริยะในพิกัด</p>
+                  <p className="text-[10px] text-slate-400">การสแกนและ GPS จะจับตำแหน่งความจริงใจ</p>
                   <p className="text-[9px] text-slate-600 mt-1">ระบบ AI และเซ็นเซอร์จะทวนสอบตำแหน่งเครื่องแบบปลอดภัยไร้การโกง</p>
                 </div>
 
