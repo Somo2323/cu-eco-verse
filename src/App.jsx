@@ -1333,4 +1333,178 @@ export default function App() {
                   <div className="grid grid-cols-2 gap-3 max-w-[260px] mx-auto">
                     <div className="bg-slate-900 border border-slate-800 p-2.5 rounded-2xl">
                       <p className="text-[9px] text-slate-500">ได้รับเหรียญสะสม</p>
-                      <p className="text-sm font-black text-yellow-400 mt-0.5
+                      <p className="text-sm font-black text-yellow-400 mt-0.5">+{activeVerificationQuest.reward} Coins 🪙</p>
+                    </div>
+                    <div className="bg-slate-900 border border-slate-800 p-2.5 rounded-2xl">
+                      <p className="text-[9px] text-slate-500">ได้รับค่าประสบการณ์</p>
+                      <p className="text-sm font-black text-pink-400 mt-0.5">+{activeVerificationQuest.xp} XP 🌟</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 max-w-[280px] mx-auto w-full">
+                  <button
+                    onClick={handleClaimAndShare}
+                    className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black py-3 rounded-xl text-xs shadow-lg shadow-emerald-500/15 cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <Share2 className="w-4 h-4 text-slate-950" /> รับรางวัลและแชร์กรีนการ์ด (Claim & Share)
+                  </button>
+
+                  <button
+                    onClick={handleClaimOnly}
+                    className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs border border-slate-700/60 cursor-pointer"
+                  >
+                    รับรางวัลเท่านั้น (Claim Only)
+                  </button>
+
+                  <p className="text-[9px] text-slate-500 text-center mt-1">
+                    การแชร์ลง IG Story จะเพิ่มการตื่นตัวและคะแนนสะสมภาพรวมของสโมฯ คณะ
+                  </p>
+                </div>
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {/* BOTTOM GLOBAL MOBILE TAB NAVIGATION BAR */}
+        <div className="absolute bottom-0 left-0 right-0 h-[64px] bg-white border-t border-slate-200/80 px-4 py-2 flex justify-around items-center rounded-t-2xl shadow-lg z-20 select-none shrink-0">
+          <button 
+            onClick={() => setActiveTab('home')}
+            className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
+              activeTab === 'home' ? 'text-pink-600 scale-105' : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Compass className={`w-5.5 h-5.5 ${activeTab === 'home' ? 'stroke-[2.5px]' : 'stroke-[1.8px]'}`} />
+            <span className="text-[9px] font-extrabold mt-1">หน้าแรก</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('route')}
+            className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
+              activeTab === 'route' ? 'text-pink-600 scale-105' : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <MapPin className={`w-5.5 h-5.5 ${activeTab === 'route' ? 'stroke-[2.5px]' : 'stroke-[1.8px]'}`} />
+            <span className="text-[9px] font-extrabold mt-1">สแกนเส้นทาง</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('quests')}
+            className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
+              activeTab === 'quests' ? 'text-pink-600 scale-105' : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Award className={`w-5.5 h-5.5 ${activeTab === 'quests' ? 'stroke-[2.5px]' : 'stroke-[1.8px]'}`} />
+            <span className="text-[9px] font-extrabold mt-1">เควส</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('wallet')}
+            className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
+              activeTab === 'wallet' ? 'text-pink-600 scale-105' : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Wallet className={`w-5.5 h-5.5 ${activeTab === 'wallet' ? 'stroke-[2.5px]' : 'stroke-[1.8px]'}`} />
+            <span className="text-[9px] font-extrabold mt-1">กระเป๋าเงิน</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('guild')}
+            className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
+              activeTab === 'guild' ? 'text-pink-600 scale-105' : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Users className={`w-5.5 h-5.5 ${activeTab === 'guild' ? 'stroke-[2.5px]' : 'stroke-[1.8px]'}`} />
+            <span className="text-[9px] font-extrabold mt-1">อันดับคณะ</span>
+          </button>
+        </div>
+
+      </div>
+
+      {/* STRARVA-STYLE GORGEOUS GREEN IMPACT STORY MODAL OVERLAY */}
+      {isShareModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[999] p-4 select-none overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-[32px] w-full max-w-[360px] p-5 relative flex flex-col gap-4 animate-scaleUp">
+            
+            <div className="flex justify-between items-center">
+              <h3 className="text-white text-xs font-black tracking-wide flex items-center gap-1">
+                <Share2 className="w-4 h-4 text-emerald-400" /> ECO-STORY GENERATOR
+              </h3>
+              <button 
+                onClick={() => setIsShareModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-white rounded-full bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex justify-between items-center bg-slate-950/50 p-2 rounded-xl border border-slate-800/80">
+              <span className="text-[9px] text-slate-400 font-bold flex items-center gap-1">
+                <Palette className="w-3.5 h-3.5 text-pink-400" /> เลือกธีมพื้นหลัง:
+              </span>
+              <div className="flex gap-1.5">
+                {['cyberpunk', 'emerald', 'aurora', 'sunset', 'transparent'].map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setStoryTheme(t)}
+                    className={`w-5 h-5 rounded-full border cursor-pointer ${
+                      t === 'emerald' ? 'bg-[#022c22] border-[#10B981]' :
+                      t === 'cyberpunk' ? 'bg-gradient-to-br from-[#4a0422] to-[#0a0209] border-[#f43f5e]' :
+                      t === 'aurora' ? 'bg-gradient-to-br from-[#0c1033] to-[#010408] border-[#38bdf8]' :
+                      t === 'sunset' ? 'bg-gradient-to-br from-[#3b1704] to-[#080301] border-[#f59e0b]' :
+                      'bg-slate-800 border-slate-400 border-dashed relative after:content-[""] after:absolute after:inset-1 after:border-t after:border-rose-400 after:rotate-45'
+                    } ${storyTheme === t ? 'scale-125 ring-2 ring-white/50' : 'opacity-70'}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <canvas ref={canvasRef} className="hidden" />
+
+            <div className="relative flex justify-center items-center w-[328px] h-[328px] mx-auto rounded-[36px] overflow-hidden bg-slate-950/40 border border-slate-800/50">
+              {exportedImageUrl ? (
+                <img 
+                  src={exportedImageUrl} 
+                  alt="CUVERSE Eco Story Map Card" 
+                  className="w-full h-full object-contain cursor-pointer pointer-events-auto select-all"
+                />
+              ) : (
+                <div className="text-white text-xs font-medium animate-pulse flex flex-col items-center gap-2">
+                  <span className="w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></span>
+                  กำลังสร้างพิกัดแผนที่กรีน...
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2.5 shrink-0">
+              <div className="bg-slate-950/60 p-2.5 text-center rounded-xl border border-slate-800">
+                <p className="text-[10px] text-slate-400 leading-normal">
+                  💡 <span className="font-extrabold text-[#10B981]">เคล็ดลับบนมือถือ:</span> แต่นิ้วค้างไว้ที่ตัวการ์ดภาพด้านบนเพื่อเลือกบันทึกรูปภาพ (Save Image) ลงแกลเลอรีได้ทันที!
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDownload}
+                  disabled={!exportedImageUrl}
+                  className="flex-1 bg-emerald-600 disabled:opacity-50 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-black text-[10.5px] flex items-center justify-center gap-1 shadow-md transition-colors cursor-pointer"
+                >
+                  <Download className="w-4 h-4" /> ดาวน์โหลด PNG
+                </button>
+                <button
+                  onClick={() => setIsShareModalOpen(false)}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-4 rounded-xl font-bold text-[10.5px] transition-colors cursor-pointer"
+                >
+                  ปิดหน้าต่าง
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
