@@ -19,22 +19,21 @@ import {
   Download,
   Palette,
   Camera,
-  Check,
-  RotateCcw
+  Check
 } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home'); // home, route, quests, wallet, guild
   const [activeQuestTab, setActiveQuestTab] = useState('daily'); // daily, classroom, lab, weekly
   
-  // Game state variables - INITIALIZED TO ZERO/EMPTY FOR TRUE PLAYTESTING EXPERIENCE
+  // Game state variables
   const [coins, setCoins] = useState(380);
   const [carbonSaved, setCarbonSaved] = useState(42.5); // in kg CO2e
   const [streak, setStreak] = useState(4);
   const [xp, setXp] = useState(1180); // 1180/1200 XP: Ready to level up on first quest!
   const [level, setLevel] = useState(12);
   const [chosenRoute, setChosenRoute] = useState(null); // stores selected route ID
-  const [completedQuests, setCompletedQuests] = useState([]); // INITIALIZED EMPTY: Let the user play and complete quests!
+  const [completedQuests, setCompletedQuests] = useState([]); // INITIALIZED EMPTY
   
   const personalEnergySaved = (carbonSaved * 1.5).toFixed(1);
 
@@ -97,7 +96,7 @@ export default function App() {
         total += activityEnergyValues[questId];
       }
     });
-    if (total === 0) return "0.00"; // zero initialized if no tasks done yet
+    if (total === 0) return "0.00"; 
     return total.toFixed(2);
   };
 
@@ -105,7 +104,6 @@ export default function App() {
   const getActiveMapPins = () => {
     const pins = [];
     
-    // Check travel route path pins based on genuine options
     if (chosenRoute === 'r_walk_forest' || chosenRoute === 'r_walk_centenary') {
       pins.push({ id: 'walk', emoji: '👟', label: 'CU Forest', x: 260, y: 500 });
     } else if (chosenRoute === 'r_bike_angry') {
@@ -114,7 +112,6 @@ export default function App() {
       pins.push({ id: 'pop', emoji: '🚌', label: 'EV Route', x: 380, y: 490 });
     }
 
-    // Check completed quests and map them dynamically
     if (completedQuests.includes('q_loop')) {
       pins.push({ id: 'bento', emoji: '🍱', label: 'Pra Keaw', x: 380, y: 460 });
     }
@@ -154,7 +151,6 @@ export default function App() {
     setXp(prev => prev + amount);
   };
 
-  // Structured Quest Data aligning with PDF/Slide 4 layout
   const questsData = {
     daily: [
       { id: 'q_loop', title: 'Loop Breaker', desc: 'คืนกล่องข้าวหมุนเวียนผ่านตู้อัจฉริยะในโรงอาหาร', reward: 30, xp: 50, carbon: 0.5, rarity: 'Common', icon: '🍱', location: 'Pra Keaw Canteen', verifyTech: 'RFID Bento Kiosk Webhook API' },
@@ -177,7 +173,6 @@ export default function App() {
     ],
   };
 
-  // Open verification dialog wizard instead of instant completing
   const handleQuestActionClick = (quest) => {
     if (completedQuests.includes(quest.id)) {
       triggerToast("คุณผ่านการรับรางวัลเควสนี้ในวันนี้ไปแล้วครับ", "info");
@@ -189,7 +184,6 @@ export default function App() {
     setIsScanningActive(false);
   };
 
-  // Simulate step 2 scanner animation & telemetry logging
   const runCameraVerificationLogs = () => {
     setIsScanningActive(true);
     setScanningLogs(["[GPS] กำลังระบุตำแหน่งพิกัดของอุปกรณ์ผู้ใช้นิสิต..."]);
@@ -228,11 +222,10 @@ export default function App() {
 
     setTimeout(() => {
       setIsScanningActive(false);
-      setVerificationStep(3); // Shift directly to Step 3 (Victory)
+      setVerificationStep(3); 
     }, 3400);
   };
 
-  // INTERNAL CORE CLAIM MECHANIC (Centralized state updates)
   const executeRewardCredits = (q) => {
     if (q.isRoute) {
       setChosenRoute(q.id);
@@ -255,7 +248,6 @@ export default function App() {
     setTransactions(prev => [newTx, ...prev]);
   };
 
-  // OPTION 1: Claim Only (รับรางวัลเฉยๆ แล้วปิดสแกน)
   const handleClaimOnly = () => {
     const q = activeVerificationQuest;
     if (!q) return;
@@ -265,18 +257,16 @@ export default function App() {
     triggerToast(`🪙 รับรางวัล +${q.reward} Eco-Coins และ +${q.xp} XP สำเร็จ!`);
   };
 
-  // OPTION 2: Claim & Share (รับรางวัล และเรียกตัวแชร์ขึ้นมาทำงานทันที)
   const handleClaimAndShare = () => {
     const q = activeVerificationQuest;
     if (!q) return;
 
     executeRewardCredits(q);
     setActiveVerificationQuest(null);
-    setIsShareModalOpen(true); // Open Story Exporter immediately
+    setIsShareModalOpen(true); 
     triggerToast(`🎉 รับสิทธิ์แล้ว! กำลังเปิดหน้าต่างแชร์กรีนการ์ดสตอรี่...`);
   };
 
-  // Genuine Chula Transit and Walkways Choices
   const routesData = [
     { id: 'r_walk_forest', title: 'เดินลัดเลาะสระน้ำจุฬาฯ และสวนป่า', desc: 'จากอาคารวิศวฯ 3 เดินเลี่ยงแดดใต้จามจุรีไปยังหอสมุดกลาง', time: '7 นาที', dist: '450m', carbon: '0g', coins: 25, isEco: true, color: 'emerald', verifyTech: 'OS HealthKit APIs + iOS/Android GPS Geofencing' },
     { id: 'r_walk_centenary', title: 'เดินรับลมลัดอุทยาน 100 ปี จุฬาฯ', desc: 'จากสโมสรศาลาพระเกี้ยว มุ่งหน้าสู่คณะพาณิชย์การบัญชีฯ', time: '12 นาที', dist: '850m', carbon: '0g', coins: 35, isEco: true, color: 'emerald', verifyTech: 'OS HealthKit APIs + iOS/Android GPS Geofencing' },
@@ -286,7 +276,6 @@ export default function App() {
     { id: 'r_motorcycle', title: 'วินมอเตอร์ไซค์รับจ้าง (มอเตอร์ไซค์น้ำมัน)', desc: 'เดินทางด่วนข้ามตึกเรียนด้วยวินเครื่องยนต์เบนซินแบบเดิม', time: '2 นาที', dist: '700m', carbon: '150g', coins: 0, isEco: false, color: 'slate', verifyTech: 'None (High Emission)' }
   ];
 
-  // Route selection triggers verification unless it is a petrol motorcycle
   const handleSelectRoute = (route) => {
     if (chosenRoute) {
       triggerToast("คุณได้เดินทางสำหรับเส้นทางวันนี้เสร็จสิ้นไปแล้ว!", "info");
@@ -294,7 +283,6 @@ export default function App() {
     }
 
     if (route.id === 'r_motorcycle') {
-      // Petrol motorcycle requires no eco-verification, inflicts bad impact instantly
       setChosenRoute(route.id);
       const newTx = {
         id: Date.now(),
@@ -308,14 +296,13 @@ export default function App() {
       return;
     }
 
-    // Eco transits open the 3-step verification modal
     const mappedRouteAsQuest = {
       id: route.id,
       title: route.title,
       desc: route.desc,
-      reward: route.coins + (route.isEco ? 5 : 0), // Includes eco bonus
+      reward: route.coins + (route.isEco ? 5 : 0), 
       xp: 30,
-      carbon: +((150 - parseInt(route.carbon)) / 1000).toFixed(2), // saved carbon in kg
+      carbon: +((150 - parseInt(route.carbon)) / 1000).toFixed(2), 
       location: 'Chulalongkorn Campus',
       verifyTech: route.verifyTech,
       icon: route.id.includes('walk') ? '👟' : route.id.includes('bike') ? '🚲' : '🚌',
@@ -349,7 +336,6 @@ export default function App() {
       date: 'วันนี้'
     };
     setTransactions([newTx, ...transactions]);
-
     triggerToast(`🎁 แลกสำเร็จ! รหัสคูปองถูกบันทึกสำเร็จ`, 'success');
   };
 
@@ -367,19 +353,16 @@ export default function App() {
     ctx.closePath();
   };
 
-  // Drawing the 1:1 Square Card (600x600 px) to Native Canvas with Custom typography
   const renderCanvasImage = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear Canvas and set dimension
     canvas.width = 600;
     canvas.height = 600;
     ctx.clearRect(0, 0, 600, 600);
 
-    // 1. Draw Card Background with appropriate gradients (Transparent or colored)
     if (storyTheme !== 'transparent') {
       const grad = ctx.createLinearGradient(0, 0, 600, 600);
       if (storyTheme === 'cyberpunk') {
@@ -404,7 +387,6 @@ export default function App() {
       ctx.fill();
     }
 
-    // 2. Logo CUVERSE (Top-left)
     ctx.fillStyle = '#10B981';
     ctx.beginPath();
     ctx.arc(60, 50, 11, 0, Math.PI * 2);
@@ -419,7 +401,6 @@ export default function App() {
     ctx.fillStyle = '#10B981';
     ctx.fillText('VERSE', 125, 50);
 
-    // 3. Streak Pill Badge (Top-right)
     ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
     drawRoundedRect(ctx, 420, 30, 140, 40, 20);
     ctx.fill();
@@ -429,20 +410,17 @@ export default function App() {
     ctx.textAlign = 'center';
     ctx.fillText(`STREAK: ${streak} DAYS`, 490, 50);
 
-    // 4. Center Metrics Block
     ctx.fillStyle = '#f59e0b';
     ctx.font = 'bold 20px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('⚡ พลังงานลดโลกร้อนวันนี้', 300, 150);
 
-    // Main Value (Energy kWh)
     const valText = calculateTodayEnergySaved();
     ctx.font = '900 80px sans-serif';
     const valW = ctx.measureText(valText).width;
 
     ctx.font = '300 28px sans-serif';
     const unitW = ctx.measureText(' kWh').width;
-
     const startX = 300 - ((valW + unitW) / 2);
 
     ctx.fillStyle = '#10B981';
@@ -454,13 +432,11 @@ export default function App() {
     ctx.font = '300 28px sans-serif';
     ctx.fillText(' kWh', startX + valW, 220);
 
-    // Carbon Savings Detail
     ctx.fillStyle = '#E2E8F0';
     ctx.font = 'bold 18px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(`เทียบเท่าการประหยัดคาร์บอน ${carbonSaved.toFixed(1)} kg`, 300, 285);
 
-    // 5. Grid Map representation with precise geometric points
     const mapY = 340;
     const mapH = 180;
     
@@ -468,7 +444,6 @@ export default function App() {
     drawRoundedRect(ctx, 40, mapY, 520, mapH, 24);
     ctx.fill();
 
-    // Map grid lines
     ctx.strokeStyle = 'rgba(16, 185, 129, 0.08)';
     ctx.lineWidth = 1;
     for (let gx = 60; gx < 540; gx += 30) {
@@ -484,18 +459,17 @@ export default function App() {
       ctx.stroke();
     }
 
-    // Connect node path links
     ctx.strokeStyle = 'rgba(16, 185, 129, 0.25)';
     ctx.lineWidth = 2;
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
-    ctx.moveTo(120, mapY + 120); // ENG 3
-    ctx.lineTo(190, mapY + 40);  // Sci Lab
-    ctx.lineTo(260, mapY + 100);  // CU Forest
-    ctx.lineTo(380, mapY + 60);  // Pra Keaw
-    ctx.lineTo(480, mapY + 120); // Central Lib
+    ctx.moveTo(120, mapY + 120); 
+    ctx.lineTo(190, mapY + 40);  
+    ctx.lineTo(260, mapY + 100); 
+    ctx.lineTo(380, mapY + 60);  
+    ctx.lineTo(480, mapY + 120); 
     ctx.stroke();
-    ctx.setLineDash([]); // Reset dash
+    ctx.setLineDash([]); 
 
     const pins = getActiveMapPins();
     pins.forEach(pin => {
@@ -510,7 +484,6 @@ export default function App() {
       else if (pin.id === 'patrol') { px = 120; py = mapY + 120; }
       else if (pin.id === 'lab') { px = 190; py = mapY + 40; }
 
-      // Outer Radial Glow
       const pulseGrad = ctx.createRadialGradient(px, py, 2, px, py, 24);
       pulseGrad.addColorStop(0, 'rgba(16, 185, 129, 0.45)');
       pulseGrad.addColorStop(0.4, 'rgba(16, 185, 129, 0.15)');
@@ -520,25 +493,21 @@ export default function App() {
       ctx.arc(px, py, 24, 0, Math.PI * 2);
       ctx.fill();
 
-      // Indicator dot
       ctx.fillStyle = '#10B981';
       ctx.beginPath();
       ctx.arc(px, py + 8, 4, 0, Math.PI * 2);
       ctx.fill();
 
-      // Large scale Emoji symbol
       ctx.font = '30px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(pin.emoji, px, py - 10);
 
-      // Label below pin node
       ctx.fillStyle = '#94a3b8';
       ctx.font = 'bold 11px monospace';
       ctx.fillText(pin.label.toUpperCase(), px, py + 20);
     });
 
-    // 6. Geotag and real coords alignment
     ctx.fillStyle = '#64748b';
     ctx.font = 'bold 14px sans-serif';
     ctx.textAlign = 'left';
@@ -548,7 +517,6 @@ export default function App() {
     ctx.textAlign = 'right';
     ctx.fillText('13.7367° N, 100.5331° E', 560, 565);
 
-    // Convert to Image Base64
     const dataUrl = canvas.toDataURL('image/png');
     setExportedImageUrl(dataUrl);
   };
@@ -576,31 +544,9 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 justify-center items-center min-h-screen bg-slate-950 font-sans p-6 antialiased text-slate-800">
+    <div className="flex justify-center items-center min-h-screen bg-slate-950 font-sans p-6 antialiased text-slate-800">
       
-      {/* LEFT COLUMN: Presentation context information with neat typography */}
-      <div className="max-w-md text-white space-y-4 px-4 text-center lg:text-left">
-        <div className="inline-flex items-center gap-2 bg-pink-500/10 border border-pink-500/20 text-pink-400 px-3 py-1.5 rounded-full text-xs font-semibold">
-          <Sparkles className="w-3.5 h-3.5" /> Hackathon Core Action Prototype
-        </div>
-        <h2 className="text-4xl font-black tracking-tight leading-tight bg-gradient-to-r from-pink-500 via-rose-400 to-emerald-400 bg-clip-text text-transparent">
-          CU Eco-Verse
-        </h2>
-        <p className="text-sm text-slate-300 leading-relaxed">
-          ระบบเปลี่ยนพฤติกรรมการประหยัดพลังงานในมหาวิทยาลัยให้เป็นบอร์ดเกม RPG ผ่านเครือข่ายเซ็นเซอร์อัจฉริยะในจุฬาฯ ทำเควสตรวจสอบพฤติกรรมจริงแบบป้องกันการโกง!
-        </p>
-        <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 text-left space-y-2">
-          <p className="text-xs font-bold text-emerald-400">💡 วิธีจำลองเควสตามสไลด์หน้า 4:</p>
-          <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
-            <li>ไปที่แท็บ <span className="text-white font-bold">"เควส"</span> ด้านล่างสุด</li>
-            <li>คลิกปุ่มภารกิจที่สนใจเพื่อเปิดหน้าจอจำลองตรวจสอบ 3 ขั้นตอน</li>
-            <li>ดูขั้นตอนกล้องสแกน และ GPS Telemetry จาก CUBEMS เสมือนจริง</li>
-            <li>รับรางวัลสะสมเพื่อนำข้อมูลพิกัดขึ้นไปแสดงที่การ์ดแชร์ IG Story!</li>
-          </ul>
-        </div>
-      </div>
-
-      {/* RIGHT COLUMN: Mobile simulator viewport container */}
+      {/* Mobile simulator viewport container centered */}
       <div className="relative w-full max-w-[390px] h-[750px] bg-white rounded-[44px] shadow-2xl border-[10px] border-slate-900 overflow-hidden flex flex-col shrink-0">
         
         {/* Notch hardware simulator */}
@@ -693,9 +639,7 @@ export default function App() {
 
               {/* Strava Share Dynamic Story Generator Trigger */}
               <button
-                onClick={() => {
-                  setIsShareModalOpen(true);
-                }}
+                onClick={() => setIsShareModalOpen(true)}
                 className="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white p-3.5 rounded-2xl border border-emerald-500/25 shadow-md flex items-center justify-between transition-all font-black text-[11px] uppercase tracking-wide group cursor-pointer"
               >
                 <span className="flex items-center gap-2">
@@ -1139,7 +1083,7 @@ export default function App() {
               </div>
 
               {/* Personal Contribution Clean Energy Saved Card */}
-              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-4 flex items-center gap-3">
+              <div className="bg-emerald-5050/10 border border-emerald-500/20 rounded-3xl p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
                   <Sun className="w-5 h-5 animate-pulse" />
                 </div>
@@ -1178,7 +1122,6 @@ export default function App() {
                         <span className="text-[8px] text-slate-400">ตัวคูณ x1.2</span>
                       </div>
                     </div>
-                    {/* Visual RES sub-metrics values */}
                     <div className="mt-2 pt-2 border-t border-slate-100 flex justify-between text-[8px] font-mono text-slate-500">
                       <span>ประหยัดไฟ: 24% (x0.5)</span>
                       <span>หมุนเวียน: 55% (x0.3)</span>
@@ -1203,7 +1146,6 @@ export default function App() {
                         <span className="text-[8px] text-slate-400">ตัวคูณ x1.1</span>
                       </div>
                     </div>
-                    {/* Visual RES sub-metrics values */}
                     <div className="mt-2 pt-2 border-t border-slate-100/60 flex justify-between text-[8px] font-mono text-slate-400">
                       <span>ประหยัดไฟ: 18% (x0.5)</span>
                       <span>หมุนเวียน: 60% (x0.3)</span>
@@ -1228,7 +1170,6 @@ export default function App() {
                         <span className="text-[8px] text-slate-400">ตัวคูณ x1.0</span>
                       </div>
                     </div>
-                    {/* Visual RES sub-metrics values */}
                     <div className="mt-2 pt-2 border-t border-slate-100/60 flex justify-between text-[8px] font-mono text-slate-400">
                       <span>ประหยัดไฟ: 15% (x0.5)</span>
                       <span>หมุนเวียน: 40% (x0.3)</span>
@@ -1250,11 +1191,10 @@ export default function App() {
 
         </div>
 
-        {/* INTERACTIVE QUEST VERIFICATION OVERLAY (Slide 4 Mockup Simulator Flow with claim choices) */}
+        {/* INTERACTIVE QUEST VERIFICATION OVERLAY */}
         {activeVerificationQuest && (
           <div className="absolute inset-0 bg-[#090D1A] z-50 flex flex-col justify-between p-5 text-white animate-scaleUp">
             
-            {/* Step Header */}
             <div className="flex justify-between items-center pb-3 border-b border-slate-800">
               <span className="text-[10px] font-extrabold bg-pink-950/80 text-pink-400 border border-pink-500/30 px-3 py-1 rounded-full uppercase tracking-wider">
                 STEP {verificationStep} OF 3
@@ -1322,23 +1262,16 @@ export default function App() {
             {/* FLOW STEP 2: CAMERA VIEWPORT & SENSOR TELEMETRY */}
             {verificationStep === 2 && (
               <div className="flex-1 flex flex-col justify-between py-4">
-                
-                {/* Simulated Camera Viewfinder */}
                 <div className="relative aspect-square w-full max-w-[280px] mx-auto bg-slate-950 rounded-[32px] border-2 border-slate-800 overflow-hidden flex items-center justify-center">
-                  
-                  {/* Camera Corner Borders */}
                   <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-pink-500"></div>
                   <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-pink-500"></div>
                   <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-pink-500"></div>
                   <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-pink-500"></div>
 
-                  {/* Horizontal Scanline Laser */}
                   <div className="absolute left-0 right-0 h-0.5 bg-emerald-400 shadow-lg shadow-emerald-400/50 animate-bounce top-1/2 z-10"></div>
                   
-                  {/* Vector mock image preview based on quest item */}
                   <div className="text-center opacity-70 z-0 select-none px-4">
                     <span className="text-7xl block mb-2 animate-pulse">{activeVerificationQuest.icon}</span>
-                    
                     {activeVerificationQuest.id.includes('bike') ? (
                       <p className="text-[9px] text-slate-400">กรุณาจัดเฟรมภาพให้เห็นรหัส Green CU Bike เพื่อให้ AI ตรวจจับวิเคราะห์สีและโครงสร้างรถ...</p>
                     ) : activeVerificationQuest.id.includes('pop') ? (
@@ -1348,14 +1281,12 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* Scanning Status Badge */}
                   <div className="absolute bottom-4 bg-slate-900/95 border border-slate-800 px-3 py-1 rounded-full text-[9px] font-mono text-emerald-400 z-20 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
                     EDGE_AI_SCANNING_ACTIVE
                   </div>
                 </div>
 
-                {/* Simulated Real-time Logging terminal */}
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">TELEMETRY VERIFICATION STREAM</span>
@@ -1378,16 +1309,13 @@ export default function App() {
                   <p className="text-[10px] text-slate-400">การสแกนและ GPS จะจับตำแหน่งความจริงใจ</p>
                   <p className="text-[9px] text-slate-600 mt-1">ระบบ AI และเซ็นเซอร์จะทวนสอบตำแหน่งเครื่องแบบปลอดภัยไร้การโกง</p>
                 </div>
-
               </div>
             )}
 
-            {/* FLOW STEP 3: SUCCESS & VICTORY CLAIM SCREEN (Offering Claim vs Claim & Share choices) */}
+            {/* FLOW STEP 3: SUCCESS & VICTORY CLAIM SCREEN */}
             {verificationStep === 3 && (
               <div className="flex-1 flex flex-col justify-between py-4">
-                
                 <div className="space-y-4 text-center py-4">
-                  {/* Glowing Victory Ring */}
                   <div className="relative w-20 h-24 mx-auto flex items-center justify-center">
                     <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl animate-pulse"></div>
                     <div className="absolute inset-0 border-4 border-emerald-400/30 rounded-full animate-spin-slow"></div>
@@ -1402,195 +1330,7 @@ export default function App() {
                     <p className="text-xs text-slate-400 mt-1">คุณประหยัดพลังงานสำเร็จพร้อมได้รับรางวัลแล้ว</p>
                   </div>
 
-                  {/* Rewards Breakdown Cards */}
                   <div className="grid grid-cols-2 gap-3 max-w-[260px] mx-auto">
                     <div className="bg-slate-900 border border-slate-800 p-2.5 rounded-2xl">
                       <p className="text-[9px] text-slate-500">ได้รับเหรียญสะสม</p>
-                      <p className="text-sm font-black text-yellow-400 mt-0.5">+{activeVerificationQuest.reward} Coins 🪙</p>
-                    </div>
-                    <div className="bg-slate-900 border border-slate-800 p-2.5 rounded-2xl">
-                      <p className="text-[9px] text-slate-500">ได้รับค่าประสบการณ์</p>
-                      <p className="text-sm font-black text-pink-400 mt-0.5">+{activeVerificationQuest.xp} XP 🌟</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Dual Decision Choice Buttons (Claim vs Claim & Share) */}
-                <div className="space-y-2 max-w-[280px] mx-auto w-full">
-                  <button
-                    onClick={handleClaimAndShare}
-                    className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black py-3 rounded-xl text-xs shadow-lg shadow-emerald-500/15 cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <Share2 className="w-4 h-4 text-slate-950" /> รับรางวัลและแชร์กรีนการ์ด (Claim & Share)
-                  </button>
-
-                  <button
-                    onClick={handleClaimOnly}
-                    className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs border border-slate-700/60 cursor-pointer"
-                  >
-                    รับรางวัลเท่านั้น (Claim Only)
-                  </button>
-
-                  <p className="text-[9px] text-slate-500 text-center mt-1">
-                    การแชร์ลง IG Story จะเพิ่มการตื่นตัวและคะแนนสะสมภาพรวมของสโมฯ คณะ
-                  </p>
-                </div>
-
-              </div>
-            )}
-
-          </div>
-        )}
-
-        {/* BOTTOM GLOBAL MOBILE TAB NAVIGATION BAR */}
-        <div className="absolute bottom-0 left-0 right-0 h-[64px] bg-white border-t border-slate-200/80 px-4 py-2 flex justify-around items-center rounded-t-2xl shadow-lg z-20 select-none shrink-0">
-          
-          <button 
-            onClick={() => setActiveTab('home')}
-            className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
-              activeTab === 'home' ? 'text-pink-600 scale-105' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Compass className={`w-5.5 h-5.5 ${activeTab === 'home' ? 'stroke-[2.5px]' : 'stroke-[1.8px]'}`} />
-            <span className="text-[9px] font-extrabold mt-1">หน้าแรก</span>
-          </button>
-
-          <button 
-            onClick={() => setActiveTab('route')}
-            className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
-              activeTab === 'route' ? 'text-pink-600 scale-105' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <MapPin className={`w-5.5 h-5.5 ${activeTab === 'route' ? 'stroke-[2.5px]' : 'stroke-[1.8px]'}`} />
-            <span className="text-[9px] font-extrabold mt-1">สแกนเส้นทาง</span>
-          </button>
-
-          <button 
-            onClick={() => setActiveTab('quests')}
-            className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
-              activeTab === 'quests' ? 'text-pink-600 scale-105' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Award className={`w-5.5 h-5.5 ${activeTab === 'quests' ? 'stroke-[2.5px]' : 'stroke-[1.8px]'}`} />
-            <span className="text-[9px] font-extrabold mt-1">เควส</span>
-          </button>
-
-          <button 
-            onClick={() => setActiveTab('wallet')}
-            className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
-              activeTab === 'wallet' ? 'text-pink-600 scale-105' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Wallet className={`w-5.5 h-5.5 ${activeTab === 'wallet' ? 'stroke-[2.5px]' : 'stroke-[1.8px]'}`} />
-            <span className="text-[9px] font-extrabold mt-1">กระเป๋าเงิน</span>
-          </button>
-
-          <button 
-            onClick={() => setActiveTab('guild')}
-            className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
-              activeTab === 'guild' ? 'text-pink-600 scale-105' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Users className={`w-5.5 h-5.5 ${activeTab === 'guild' ? 'stroke-[2.5px]' : 'stroke-[1.8px]'}`} />
-            <span className="text-[9px] font-extrabold mt-1">อันดับคณะ</span>
-          </button>
-
-        </div>
-
-      </div>
-
-      {/* STRARVA-STYLE GORGEOUS GREEN IMPACT STORY MODAL OVERLAY (1:1 Aspect Ratio Exporter) */}
-      {isShareModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[999] p-4 select-none overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-[32px] w-full max-w-[360px] p-5 relative flex flex-col gap-4 animate-scaleUp">
-            
-            {/* Modal Header */}
-            <div className="flex justify-between items-center">
-              <h3 className="text-white text-xs font-black tracking-wide flex items-center gap-1">
-                <Share2 className="w-4 h-4 text-emerald-400" /> ECO-STORY GENERATOR
-              </h3>
-              <button 
-                onClick={() => setIsShareModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-white rounded-full bg-slate-800 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Theme Selector Palette */}
-            <div className="flex justify-between items-center bg-slate-950/50 p-2 rounded-xl border border-slate-800/80">
-              <span className="text-[9px] text-slate-400 font-bold flex items-center gap-1">
-                <Palette className="w-3.5 h-3.5 text-pink-400" /> เลือกธีมพื้นหลัง:
-              </span>
-              <div className="flex gap-1.5">
-                {['cyberpunk', 'emerald', 'aurora', 'sunset', 'transparent'].map(t => (
-                  <button
-                    key={t}
-                    onClick={() => {
-                      setStoryTheme(t);
-                    }}
-                    title={t === 'transparent' ? 'พื้นหลังโปร่งใส' : `ธีม ${t}`}
-                    className={`w-5 h-5 rounded-full border cursor-pointer ${
-                      t === 'emerald' ? 'bg-[#022c22] border-[#10B981]' :
-                      t === 'cyberpunk' ? 'bg-gradient-to-br from-[#4a0422] to-[#0a0209] border-[#f43f5e]' :
-                      t === 'aurora' ? 'bg-gradient-to-br from-[#0c1033] to-[#010408] border-[#38bdf8]' :
-                      t === 'sunset' ? 'bg-gradient-to-br from-[#3b1704] to-[#080301] border-[#f59e0b]' :
-                      'bg-slate-800 border-slate-400 border-dashed relative after:content-[""] after:absolute after:inset-1 after:border-t after:border-rose-400 after:rotate-45'
-                    } ${storyTheme === t ? 'scale-125 ring-2 ring-white/50' : 'opacity-70'}`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Hidden canvas rendering block */}
-            <canvas ref={canvasRef} className="hidden" />
-
-            {/* REAL NATIVE IMAGE CONTAINER (Base64 for perfect touch-hold mobile compatibility) */}
-            <div className="relative flex justify-center items-center w-[328px] h-[328px] mx-auto rounded-[36px] overflow-hidden bg-slate-950/40 border border-slate-800/50">
-              {exportedImageUrl ? (
-                <img 
-                  src={exportedImageUrl} 
-                  alt="CUVERSE Eco Story Map Card" 
-                  className="w-full h-full object-contain cursor-pointer pointer-events-auto select-all"
-                  title="แตะค้างที่รูปภาพเพื่อบันทึก"
-                />
-              ) : (
-                <div className="text-white text-xs font-medium animate-pulse flex flex-col items-center gap-2">
-                  <span className="w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></span>
-                  กำลังสร้างพิกัดแผนที่กรีน...
-                </div>
-              )}
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex flex-col gap-2.5 shrink-0">
-              <div className="bg-slate-950/60 p-2.5 text-center rounded-xl border border-slate-800">
-                <p className="text-[10px] text-slate-400 leading-normal">
-                  💡 <span className="font-extrabold text-[#10B981]">เคล็ดลับบนมือถือ:</span> แตะนิ้วค้างไว้ที่ตัวการ์ดภาพด้านบนเพื่อเลือกบันทึกรูปภาพ (Save Image) ลงแกลเลอรีได้ทันที!
-                </p>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={handleDownload}
-                  disabled={!exportedImageUrl}
-                  className="flex-1 bg-emerald-600 disabled:opacity-50 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-black text-[10.5px] flex items-center justify-center gap-1 shadow-md transition-colors cursor-pointer"
-                >
-                  <Download className="w-4 h-4" /> ดาวน์โหลด PNG
-                </button>
-                <button
-                  onClick={() => setIsShareModalOpen(false)}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 px-4 rounded-xl font-bold text-[10.5px] transition-colors cursor-pointer"
-                >
-                  ปิดหน้าต่าง
-                </button>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-    </div>
-  );
-}
+                      <p className="text-sm font-black text-yellow-400 mt-0.5
