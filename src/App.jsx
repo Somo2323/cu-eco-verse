@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Compass, 
   MapPin, 
@@ -16,10 +16,17 @@ import {
   X,
   Trophy,
   RefreshCw,
-  Coins
+  Coins,
+  CheckCircle2,
+  Camera,
+  Layers,
+  Lock,
+  Unlock,
+  ArrowUpRight,
+  RotateCcw,
+  Check
 } from 'lucide-react';
 
-// Safe inline synthesized audio to prevent any external file dependency issues
 const playSynthSound = (type) => {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -31,38 +38,49 @@ const playSynthSound = (type) => {
     if (type === 'select') {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(600, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.1);
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+      osc.frequency.exponentialRampToValueAtTime(850, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.12);
       osc.start();
-      osc.stop(ctx.currentTime + 0.1);
+      osc.stop(ctx.currentTime + 0.12);
     } else if (type === 'place') {
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(300, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+      osc.frequency.setValueAtTime(320, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(180, ctx.currentTime + 0.18);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.18);
       osc.start();
-      osc.stop(ctx.currentTime + 0.15);
+      osc.stop(ctx.currentTime + 0.18);
     } else if (type === 'blast') {
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(200, ctx.currentTime);
-      osc.frequency.linearRampToValueAtTime(900, ctx.currentTime + 0.3);
-      gain.gain.setValueAtTime(0.2, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      osc.frequency.setValueAtTime(250, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(1000, ctx.currentTime + 0.4);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
       osc.start();
-      osc.stop(ctx.currentTime + 0.3);
-    } else if (type === 'gameover') {
+      osc.stop(ctx.currentTime + 0.4);
+    } else if (type === 'perfect') {
+      // Golden melody for full board clear
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(400, ctx.currentTime);
-      osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.5);
-      gain.gain.setValueAtTime(0.25, ctx.currentTime);
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+      osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); // G5
+      osc.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.3); // C6
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
       osc.start();
       osc.stop(ctx.currentTime + 0.5);
+    } else if (type === 'gameover') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(350, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(90, ctx.currentTime + 0.6);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.6);
     }
   } catch (e) {
-    console.log("Audio not supported or blocked by browser policy yet.");
+    console.log("Audio contexts blocked or unsupported on device.");
   }
 };
 
@@ -70,42 +88,52 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('home'); // home, route, quests, wallet, game
   const [activeQuestTab, setActiveQuestTab] = useState('daily'); // daily, classroom, lab, weekly
   
-  // Real-time Player State
-  const [coins, setCoins] = useState(1250);
-  const [carbonSaved, setCarbonSaved] = useState(42.5); // in kg CO2e
-  const [streak, setStreak] = useState(4);
-  const [xp, setXp] = useState(120);
-  const [level, setLevel] = useState(3);
+  // Player Stats & Inflation-Aware Token Balances
+  const [coins, setCoins] = useState(1350);
+  const [carbonSaved, setCarbonSaved] = useState(48.2); // in kg CO2e
+  const [streak, setStreak] = useState(5);
+  const [xp, setXp] = useState(160);
+  const [level, setLevel] = useState(4);
   const [chosenRoute, setChosenRoute] = useState(null); 
   const [completedQuests, setCompletedQuests] = useState([]); 
+
+  // Quest Verification Flow Modal State
+  const [verifyingQuest, setVerifyingQuest] = useState(null);
+  const [verificationStep, setVerificationStep] = useState(0); // 0: Start/GPS, 1: AI Camera, 2: CUBEMS link, 3: Completed
+  const [photoCaptured, setPhotoCaptured] = useState(false);
   
-  // Interactive Notifications State
+  // Real-time Event Alerts Feed
   const [notifications, setNotifications] = useState([
-    { id: 1, type: 'alert', text: '🚨 ภูตคาร์บอน (Carbon Ghost) ก่อกวน! ตึกวิศวฯ 3 พบการเปิดไฟทิ้งไว้ในวันหยุด!' },
-    { id: 2, type: 'rare', text: '🌟 เควส Rare ระดับตำนานเปิดแล้ว: ปิดระบบแล็บชั้น 4 คณะวิทยาศาสตร์' }
+    { id: 1, type: 'alert', text: '🚨 ภูตคาร์บอนก่อกวน! มีการเปิดเครื่องปรับอากาศค้างไว้ที่ห้องเรียน ENG3-402' },
+    { id: 2, type: 'rare', text: '🌟 เควส Rare คณะวิทยาศาสตร์: คลีนตู้แช่แข็งเคมีชีวภาพสะสม 2 เท่า' }
   ]);
 
-  // Route Planning State
   const [startPoint, setStartPoint] = useState('eng3');
   const [endPoint, setEndPoint] = useState('library');
-
-  // Interactive Toast State
   const [toast, setToast] = useState(null);
-  
-  // Custom transaction log for Wallet
+
   const [transactions, setTransactions] = useState([
-    { id: 1, title: 'แลกกล่องข้าวหมุนเวียนสำเร็จ', change: -50, type: 'spend', date: 'วันนี้' },
-    { id: 2, title: 'ภารกิจ Phantom Load Patrol สำเร็จ', change: 50, type: 'earn', date: 'วันนี้' },
-    { id: 3, title: 'โบนัสเดินเรียน Chula Forest', change: 25, type: 'earn', date: 'เมื่อวาน' },
+    { id: 1, title: 'แลกแก้วน้ำพับได้ CU Green', change: -1200, type: 'spend', date: 'วันนี้' },
+    { id: 2, title: 'เควสใช้กล่องข้าวส่วนตัวสำเร็จ', change: 40, type: 'earn', date: 'วันนี้' },
+    { id: 3, title: 'เควสแยกขวดรีไซเคิลสำเร็จ', change: 35, type: 'earn', date: 'เมื่อวาน' },
   ]);
 
-  // Game state
   const [grid, setGrid] = useState(Array(6).fill(null).map(() => Array(6).fill(0)));
   const [score, setScore] = useState(0);
   const [selectedShapeIdx, setSelectedShapeIndex] = useState(null);
   const [isGameOver, setIsGameOver] = useState(false);
+  
+  // Neon Theme Cycles for Block Blast [Pink, Emerald, Violet, Amber, Sky]
+  const themeList = ['pink', 'emerald', 'violet', 'amber', 'sky'];
+  const [activeThemeIdx, setActiveThemeIdx] = useState(0);
+  const currentTheme = themeList[activeThemeIdx];
 
-  // Defining puzzle shape blocks
+  // Drag-and-drop live states
+  const [draggedShapeIdx, setDraggedShapeIdx] = useState(null);
+  const [dragPosition, setDragOffset] = useState({ x: 0, y: 0 });
+  const [hoverCell, setHoverCell] = useState(null); // { r, c }
+  const shapeRefs = useRef([]);
+
   const shapesDatabase = [
     { name: 'Dot', cells: [[1]] },
     { name: 'H-Line 2', cells: [[1, 1]] },
@@ -127,11 +155,10 @@ export default function App() {
 
   const triggerToast = (message, type = 'success') => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 3500);
   };
 
-  // XP Progress and Levelling Logic
-  const xpNeededForNextLevel = level * 100;
+  const xpNeededForNextLevel = level * 120;
   
   const addXP = (amount) => {
     let newXp = xp + amount;
@@ -139,7 +166,7 @@ export default function App() {
     if (newXp >= xpNeededForNextLevel) {
       newXp = newXp - xpNeededForNextLevel;
       newLevel = level + 1;
-      triggerToast(`🎉 LEVEL UP! ตอนนี้คุณก้าวสู่ระดับ ${newLevel} แล้ว!`, 'levelUp');
+      triggerToast(`🎉 เลเวลอัป! คุณเลื่อนสู่อัศวินคาร์บอนต่ำระดับ ${newLevel}!`, 'levelUp');
     }
     setXp(newXp);
     setLevel(newLevel);
@@ -147,36 +174,58 @@ export default function App() {
 
   const questsData = {
     daily: [
-      { id: 'q_loop', title: 'Loop Breaker', desc: 'คืนกล่องข้าวหมุนเวียนผ่านตู้อัจฉริยะในโรงอาหาร', reward: 15, xp: 30, carbon: 0.5, rarity: 'Common', icon: '🍱' },
-      { id: 'q_refill', title: 'Refill Ranger', desc: 'เติมน้ำดื่มที่ตู้กรองอัจฉริยะแทนการซื้อน้ำขวดใหม่', reward: 10, xp: 20, carbon: 0.2, rarity: 'Common', icon: '💧' },
-      { id: 'q_shade', title: 'Shade Walker', desc: 'เดินผ่านเส้นทางต้นไม้ร่มรื่น Chula Urban Forest', reward: 25, xp: 40, carbon: 1.2, rarity: 'Rare', icon: '🌳' },
+      { id: 'q_bento', title: 'My Bento Pride', desc: 'ใช้กล่องข้าวพกพาและช้อนส้อมของตัวเองในโรงอาหาร เพื่อลดพลาสติกใช้แล้วทิ้ง', reward: 40, xp: 50, carbon: 0.8, rarity: 'Common', icon: '🍱' },
+      { id: 'q_stairs', title: 'Stair Climber', desc: 'เดินใช้บันไดขึ้นลงตึกเรียนและอาคารแทนการใช้ลิฟต์ (ประหยัดพลังงานตึก 0.1 kWh)', reward: 25, xp: 35, carbon: 0.3, rarity: 'Common', icon: '🪜' },
+      { id: 'q_sort', title: 'Sorting Champion', desc: 'แยกขยะเศษอาหารทั่วไป ขยะเปียก และขยะแห้งอย่างถูกต้อง ณ จุดทิ้งขยะคณะ', reward: 35, xp: 45, carbon: 0.6, rarity: 'Rare', icon: '🗑️' },
     ],
     classroom: [
-      { id: 'q_proj', title: 'Projector Slayer', desc: 'ตรวจเช็คและปิดโปรเจกเตอร์หลังเลิกชั้นเรียน 10 นาที', reward: 40, xp: 60, carbon: 1.8, rarity: 'Epic', icon: '🔌' },
-      { id: 'q_reset', title: 'Study Room Reset', desc: 'กดยืนยันการปิดไฟและล็อกห้องหลังใช้ห้องประชุมเสร็จ', reward: 30, xp: 50, carbon: 1.5, rarity: 'Rare', icon: '🚪' },
-      { id: 'q_ac', title: 'Quick Cooldown', desc: 'ปรับอุณหภูมิแอร์ขึ้นเป็น 26°C ร่วมกับพัดลมช่วงบ่ายเรียน', reward: 20, xp: 30, carbon: 1.0, rarity: 'Common', icon: '❄️' },
+      { id: 'q_bottle', title: 'Can & Bottle Crusher', desc: 'คัดแยกขวดพลาสติกใส PET และกระป๋องอะลูมิเนียมหยอดใส่ตู้แยกรีไซเคิลของคณะ', reward: 50, xp: 60, carbon: 1.2, rarity: 'Rare', icon: '🥫' },
+      { id: 'q_proj', title: 'Projector Slayer', desc: 'ตรวจเช็คและปิดโปรเจกเตอร์หลังเลิกเรียนเพื่อประหยัดไฟ', reward: 40, xp: 50, carbon: 1.5, rarity: 'Epic', icon: '🔌' },
+      { id: 'q_ac', title: 'Thermostat Guard', desc: 'ปรับอุณหภูมิห้องปรับอากาศให้อยู่ระดับ 26°C ร่วมกับการเปิดพัดลมเพื่อลดพีค', reward: 30, xp: 40, carbon: 1.0, rarity: 'Common', icon: '❄️' },
     ],
     lab: [
-      { id: 'q_phantom', title: 'Phantom Load Patrol', desc: 'กวาดล้างพลังงานแฝง ดึงปลั๊กอุปกรณ์สแตนบายในแล็บเคมี', reward: 50, xp: 80, carbon: 2.2, rarity: 'Epic', icon: '🕵️‍♂️' },
-      { id: 'q_fume', title: 'Fume Hood Master', desc: 'ดึงบานหน้าต่างตู้ควันเคมี (Fume Hood) ลงให้อยู่ในระดับปลอดภัย', reward: 80, xp: 120, carbon: 3.5, rarity: 'Legendary', icon: '🧪' },
-      { id: 'q_freezer', title: 'Freezer Guardian', desc: 'จัดระเบียบตู้แช่แข็ง -80°C และปิดประตูตู้ให้สนิทใน 10 วินาที', reward: 35, xp: 55, carbon: 1.7, rarity: 'Rare', icon: '🥶' },
+      { id: 'q_phantom', title: 'Phantom Load Patrol', desc: 'ตรวจกวาดล้างสแตนด์บายปลั๊กเครื่องมือห้องแล็บก่อนปิดห้องในวันหยุด', reward: 60, xp: 80, carbon: 2.5, rarity: 'Epic', icon: '🕵️‍♂️' },
+      { id: 'q_freezer', title: 'Freezer Fortress', desc: 'ตรวจสอบขอบยางตู้แช่แข็งเคมี -80°C ให้ปิดสนิทและไม่เปิดแช่ทิ้งไว้', reward: 45, xp: 50, carbon: 1.8, rarity: 'Rare', icon: '🥶' },
     ],
     weekly: [
-      { id: 'q_streak', title: '3-Day Green Streak', desc: 'เลือกใช้เส้นทางเดินทางรักษ์โลกติดต่อกันเป็นเวลา 3 วัน', reward: 120, xp: 200, carbon: 5.0, rarity: 'Legendary', icon: '⚡' },
-      { id: 'q_raid', title: 'Faculty Raid: 300 Actions', desc: 'ร่วมมือกับเพื่อนในคณะเคลียร์เควสห้องเรียนรวมครบเป้าหมาย', reward: 150, xp: 250, carbon: 8.0, rarity: 'Epic', icon: '🏰' },
+      { id: 'q_streak', title: '5-Day Eco Streak', desc: 'เดินทางด้วย CU Bike หรือเดินเรียนติดต่อกันครบ 5 วันในสัปดาห์นี้', reward: 150, xp: 200, carbon: 5.5, rarity: 'Legendary', icon: '⚡' },
     ],
   };
 
-  const handleCompleteQuest = (quest) => {
+  const handleInitiateQuestVerification = (quest) => {
     if (completedQuests.includes(quest.id)) return;
+    playSynthSound('select');
+    setVerifyingQuest(quest);
+    setVerificationStep(0);
+    setPhotoCaptured(false);
+  };
 
+  const handleNextVerificationStep = () => {
+    playSynthSound('select');
+    if (verificationStep === 0) {
+      // Move to Camera verify step
+      setVerificationStep(1);
+    } else if (verificationStep === 1) {
+      // Simulate photo capture
+      setPhotoCaptured(true);
+      setTimeout(() => {
+        setVerificationStep(2);
+        playSynthSound('select');
+      }, 1200);
+    } else if (verificationStep === 2) {
+      // Complete CUBEMS link step and award player
+      setVerificationStep(3);
+      executeQuestCompletion(verifyingQuest);
+    }
+  };
+
+  const executeQuestCompletion = (quest) => {
     setCompletedQuests([...completedQuests, quest.id]);
     setCoins(prev => prev + quest.reward);
     setCarbonSaved(prev => +(prev + quest.carbon).toFixed(1));
     addXP(quest.xp);
     setStreak(prev => prev + 1);
 
-    // Add transaction history
     const newTx = {
       id: Date.now(),
       title: `ทำเควส ${quest.title} สำเร็จ`,
@@ -185,60 +234,19 @@ export default function App() {
       date: 'วันนี้'
     };
     setTransactions([newTx, ...transactions]);
-
-    triggerToast(`🎉 เควสสำเร็จ! รับ +${quest.reward} 🪙 และ +${quest.xp} XP!`);
-  };
-
-  // Route details with rewards and impact calculations
-  const routesData = [
-    { id: 'r_walk', title: 'Walk via Chula Forest', desc: 'เดินผ่านพื้นที่ร่มรื่นใต้เงาไม้ใหญ่จามจุรี', time: '8 นาที', dist: '550m', carbon: '0g', coins: 20, isEco: true, color: 'emerald' },
-    { id: 'r_bike', title: 'Bike via Green Lane', desc: 'ปั่นจักรยาน CU Bike เลียบทางเฉพาะสีเขียว', time: '3 นาที', dist: '600m', carbon: '4g', coins: 12, isEco: false, color: 'indigo' },
-    { id: 'r_pop', title: 'Pop Bus EV (Line 1)', desc: 'นั่งรถป๊อบพลังงานไฟฟ้า EV ประจำเส้นทางหลัก', time: '5 นาที', dist: '1.2km', carbon: '15g', coins: 6, isEco: false, color: 'pink' },
-    { id: 'r_car', title: 'วินมอเตอร์ไซค์น้ำมัน', desc: 'เดินทางผ่านเส้นทางถนนวิทยบริการแบบใช้น้ำมัน', time: '2 นาที', dist: '500m', carbon: '180g', coins: 0, isEco: false, color: 'slate' }
-  ];
-
-  const handleSelectRoute = (route) => {
-    if (chosenRoute) {
-      triggerToast("คุณได้จำลองการเดินทางของวันนี้ไปแล้ว!", "info");
-      return;
-    }
-
-    setChosenRoute(route.id);
-    let finalReward = route.coins;
-    let textBonus = "";
-
-    if (route.isEco) {
-      finalReward += 5; 
-      textBonus = " + โบนัสความรักษ์โลก 5 🪙!";
-      setStreak(prev => prev + 1);
-    }
-
-    setCoins(prev => prev + finalReward);
-    const carbonDelta = +((180 - parseInt(route.carbon)) / 1000).toFixed(2);
-    setCarbonSaved(prev => +(prev + Math.max(0, carbonDelta)).toFixed(2));
-    addXP(30);
-
-    const newTx = {
-      id: Date.now(),
-      title: `เดินทางด้วย ${route.title}`,
-      change: finalReward,
-      type: 'earn',
-      date: 'วันนี้'
-    };
-    setTransactions([newTx, ...transactions]);
-
-    triggerToast(`🚲 เดินทางสำเร็จ! ได้รับ ${finalReward} 🪙${textBonus}`);
+    playSynthSound('perfect');
   };
 
   const rewardsList = [
-    { id: 'reward_cup', title: 'คูปองแลกเครื่องดื่ม CU Cafe', cost: 300, desc: 'แลกส่วนลดเครื่องดื่มมูลค่า 30 บาทที่โรงอาหารพลาซ่า', icon: '☕' },
-    { id: 'reward_ev', title: 'EV Pass ชาร์จฟรีช่วงบ่าย', cost: 100, desc: 'รับสิทธิ์ชาร์จรถจักรยานยนต์ไฟฟ้าฟรีช่วงโซลาร์พีก', icon: '🔌' },
-    { id: 'reward_ticket', title: 'ตั๋วชมภาพยนตร์เครือ SF / Major', cost: 1000, desc: 'ตั๋วหนังฟรี 1 ใบ สนับสนุนการทำ Net-Zero', icon: '🎬' }
+    { id: 'reward_cup', title: 'คูปองเครื่องดื่มฟรี CU Cafe', cost: 1200, desc: 'แลกเครื่องดื่มออร์แกนิกฟรี 1 แก้ว ณ โรงอาหารกลางเพื่อช่วยสนับสนุนการใช้แก้วส่วนตัว', icon: '☕' },
+    { id: 'reward_ev', title: 'EV Motor Pass ฟรีช่วงพีค', cost: 500, desc: 'รับสิทธิ์ใช้บริการชาร์จมอเตอร์ไซค์ไฟฟ้าและสแกน CU Bike พรีเมียม ฟรี 5 ครั้ง', icon: '🔌' },
+    { id: 'reward_gened', title: 'Gen-Ed Course Fast Pass', cost: 4500, desc: 'สิทธิ์ลงทะเบียนล่วงหน้าวิชาหมวดศึกษาทั่วไปยอดนิยมวิชาสิ่งแวดล้อมที่จำกัดที่นั่ง', icon: '🎓' },
+    { id: 'reward_ticket', title: 'ตั๋วชมภาพยนตร์เครือ SF / Major Eco-Seat', cost: 4000, desc: 'บัตรชมภาพยนตร์ฟรี 1 ใบ สนับสนุนโครงการปลูกป่าลดคาร์บอนของโรงภาพยนตร์', icon: '🎬' }
   ];
 
   const handleRedeem = (reward) => {
     if (coins < reward.cost) {
-      triggerToast("ยอดเหรียญ Eco-Coins ไม่เพียงพอสำหรับการแลกซื้อ!", "error");
+      triggerToast("ยอดเหรียญสะสมไม่เพียงพอ ต้องเคลียร์เควสเพิ่มเติมด่วนครับ!", "error");
       return;
     }
 
@@ -252,31 +260,70 @@ export default function App() {
     };
     setTransactions([newTx, ...transactions]);
 
-    triggerToast(`🎁 แลกสำเร็จ! รหัสสิทธิ์สแกนถูกเก็บลงหน้า Profile แล้ว`, 'success');
+    triggerToast(`🎁 แลกสำเร็จ! บันทึกคิวอาร์โค้ดลงหน้ากระเป๋าของคุณแล้ว`, 'success');
   };
 
-  const selectShapeToPlace = (index) => {
-    if (availableShapes[index] === null) return;
+  const handlePointerDown = (e, index) => {
     playSynthSound('select');
+    setDraggedShapeIdx(index);
     setSelectedShapeIndex(index);
+    const rect = e.currentTarget.getBoundingClientRect();
+    setDragOffset({
+      x: e.clientX - rect.left - rect.width / 2,
+      y: e.clientY - rect.top - rect.height / 2
+    });
   };
 
-  const handleGridCellClick = (r, c) => {
-    if (selectedShapeIdx === null) return;
-    const selectedShape = availableShapes[selectedShapeIdx];
+  const handlePointerMove = (e) => {
+    if (draggedShapeIdx === null) return;
+    
+    // Find grid element from document to trace bounding boxes
+    const gridEl = document.getElementById("game-grid-board");
+    if (!gridEl) return;
+
+    const gridRect = gridEl.getBoundingClientRect();
+    const relX = e.clientX - gridRect.left;
+    const relY = e.clientY - gridRect.top;
+
+    // Calculate grid coordinate sizes
+    const cellWidth = gridRect.width / 6;
+    const cellHeight = gridRect.height / 6;
+
+    const c = Math.floor(relX / cellWidth);
+    const r = Math.floor(relY / cellHeight);
+
+    if (r >= 0 && r < 6 && c >= 0 && c < 6) {
+      setHoverCell({ r, c });
+    } else {
+      setHoverCell(null);
+    }
+  };
+
+  const handlePointerUp = () => {
+    if (draggedShapeIdx === null) return;
+
+    if (hoverCell) {
+      attemptBlockPlacement(hoverCell.r, hoverCell.c, draggedShapeIdx);
+    }
+
+    setDraggedShapeIdx(null);
+    setHoverCell(null);
+  };
+
+  const attemptBlockPlacement = (r, c, shapeIdx) => {
+    const selectedShape = availableShapes[shapeIdx];
     if (!selectedShape) return;
 
-    // Check if the shape fits from top-left anchor (r, c)
     const shapeRows = selectedShape.cells.length;
     const shapeCols = selectedShape.cells[0].length;
 
-    // Boundary check
+    // Boundary confirmation
     if (r + shapeRows > 6 || c + shapeCols > 6) {
-      triggerToast("วางบล็อกนอกกระดานไม่ได้!", "error");
+      triggerToast("อย่าวางบล็อกออกนอกพื้นที่กระดานครับ!", "error");
       return;
     }
 
-    // Overlap check
+    // Checking collision / overlaps
     let fits = true;
     for (let sR = 0; sR < shapeRows; sR++) {
       for (let sC = 0; sC < shapeCols; sC++) {
@@ -289,11 +336,11 @@ export default function App() {
     }
 
     if (!fits) {
-      triggerToast("ช่องนี้มีบล็อกอื่นวางอยู่แล้ว!", "error");
+      triggerToast("จุดนี้มีพลังงานบล็อกอื่นบดบังอยู่แล้ว!", "error");
       return;
     }
 
-    // Place the shape
+    // Write placement into state
     const newGrid = grid.map(row => [...row]);
     for (let sR = 0; sR < shapeRows; sR++) {
       for (let sC = 0; sC < shapeCols; sC++) {
@@ -303,25 +350,19 @@ export default function App() {
       }
     }
 
-    // Sound feedback
     playSynthSound('place');
 
-    // Remove the shape from available list
     const newAvailableShapes = [...availableShapes];
-    newAvailableShapes[selectedShapeIdx] = null;
+    newAvailableShapes[shapeIdx] = null;
 
-    // Check row/column blasts
+    // Line / Column clearances
     let rowsToClear = [];
     let colsToClear = [];
 
-    // Check rows
     for (let i = 0; i < 6; i++) {
-      if (newGrid[i].every(val => val === 1)) {
-        rowsToClear.push(i);
-      }
+      if (newGrid[i].every(val => val === 1)) rowsToClear.push(i);
     }
 
-    // Check columns
     for (let j = 0; j < 6; j++) {
       let isColFull = true;
       for (let i = 0; i < 6; i++) {
@@ -330,61 +371,74 @@ export default function App() {
           break;
         }
       }
-      if (isColFull) {
-        colsToClear.push(j);
-      }
+      if (isColFull) colsToClear.push(j);
     }
 
-    // Execute blast
-    let clearedCount = rowsToClear.length + colsToClear.length;
+    // Clear and calculate
+    const clearedCount = rowsToClear.length + colsToClear.length;
     if (clearedCount > 0) {
       playSynthSound('blast');
-      // Clear rows
       rowsToClear.forEach(rowIdx => {
         for (let j = 0; j < 6; j++) newGrid[rowIdx][j] = 0;
       });
-      // Clear columns
       colsToClear.forEach(colIdx => {
         for (let i = 0; i < 6; i++) newGrid[i][colIdx] = 0;
       });
     }
 
-    // Calculate earned score
-    let pointsPlaced = selectedShape.cells.flat().filter(x => x === 1).length * 10;
-    let pointsClear = clearedCount * 150;
-    const roundScore = pointsPlaced + pointsClear;
+    // Determine if board is 100% cleared (Perfect Wipe)
+    let isFullyEmpty = true;
+    for (let i = 0; i < 6; i++) {
+      for (let j = 0; j < 6; j++) {
+        if (newGrid[i][j] === 1) {
+          isFullyEmpty = false;
+          break;
+        }
+      }
+    }
+
+    let extraPerfectBonus = 0;
+    if (isFullyEmpty) {
+      playSynthSound('perfect');
+      extraPerfectBonus = 1000;
+      // Cycle grid visual neon themes!
+      setActiveThemeIdx((prev) => (prev + 1) % themeList.length);
+      triggerToast("🌟 PERFECT WIPE! เคลียร์กระดานหมดจด! รับเพิ่ม +1000 แต้มและเปลี่ยนธีมบล็อก!", "success");
+    }
+
+    // Score increments
+    const blocksPlacedCount = selectedShape.cells.flat().filter(x => x === 1).length;
+    const roundScore = (blocksPlacedCount * 15) + (clearedCount * 200) + extraPerfectBonus;
     setScore(prev => prev + roundScore);
 
-    // Update Grid state
     setGrid(newGrid);
     setSelectedShapeIndex(null);
 
-    // If all three shapes are used, generate new ones
+    // Refill standard dock if all blocks are consumed
     if (newAvailableShapes.every(shape => shape === null)) {
       setAvailableShapes(generateRandomShapes());
     } else {
       setAvailableShapes(newAvailableShapes);
     }
 
-    // Simple game over check
-    let anyShapeCanBePlaced = false;
+    // Quick game over check for next valid moves
+    let possibleMoveFound = false;
     newAvailableShapes.forEach((shape) => {
       if (shape === null) return;
-      // Search for any valid (r, c) position
       for (let i = 0; i < 6; i++) {
         for (let j = 0; j < 6; j++) {
           if (testFit(newGrid, shape, i, j)) {
-            anyShapeCanBePlaced = true;
+            possibleMoveFound = true;
           }
         }
       }
     });
 
     if (newAvailableShapes.every(shape => shape === null)) {
-      anyShapeCanBePlaced = true; // New shapes will be generated
+      possibleMoveFound = true; // Will generate fresh shapes next round
     }
 
-    if (!anyShapeCanBePlaced) {
+    if (!possibleMoveFound) {
       setIsGameOver(true);
       playSynthSound('gameover');
     }
@@ -411,15 +465,20 @@ export default function App() {
     setAvailableShapes(generateRandomShapes());
     setSelectedShapeIndex(null);
     setIsGameOver(false);
-    triggerToast("เริ่มเกมใหม่แล้ว! เล่นให้สนุกนะครับ 🎮");
+    triggerToast("กระดานรีเซ็ตแล้ว ลุยภารกิจ Block Blast กันต่อเลย!");
   };
 
-  const isEligibleForExtraRewards = completedQuests.length >= 3;
-  const conversionRate = isEligibleForExtraRewards ? 5000 : 10000;
+  const isEligibleToConvert = completedQuests.length >= 3;
+  const conversionRate = 10000;
 
   const handleConvertScoreToCoins = () => {
+    if (!isEligibleToConvert) {
+      triggerToast("🔒 ต้องพิชิตภารกิจสีเขียวให้ครบ 3 เควสก่อนวันนี้ จึงจะแลกเหรียญรางวัลได้ครับ!", "error");
+      return;
+    }
+
     if (score < conversionRate) {
-      triggerToast(`ต้องการอย่างน้อย ${conversionRate.toLocaleString()} คะแนน เพื่อแปลงเป็น 1 Eco-Coin!`, "info");
+      triggerToast(`ต้องการคะแนนสะสมอย่างน้อย ${conversionRate.toLocaleString()} แต้มเพื่อแลก 1 Eco-Coin!`, "info");
       return;
     }
 
@@ -431,45 +490,58 @@ export default function App() {
 
     const newTx = {
       id: Date.now(),
-      title: `แปลงคะแนน Block Blast เป็น Eco-Coins`,
+      title: `แปลงแต้ม Block Blast เป็น Eco-Coins`,
       change: earnedCoins,
       type: 'earn',
       date: 'วันนี้'
     };
     setTransactions([newTx, ...transactions]);
 
-    triggerToast(`🎉 ยินดีด้วย! แปลงคะแนนสำเร็จ รับ +${earnedCoins} 🪙 !`);
+    triggerToast(`🎉 ยินดีด้วย! แปลงคะแนนสำเร็จ ได้รับ +${earnedCoins} 🪙 เพื่อช่วยลดคาร์บอน!`);
+  };
+
+  // Determine neon classes based on selected theme colors
+  const getThemeBlockClass = (activeTh) => {
+    switch (activeTh) {
+      case 'pink': return 'from-pink-500 to-rose-600 border-pink-400 text-pink-500';
+      case 'emerald': return 'from-emerald-400 to-teal-600 border-emerald-300 text-emerald-400';
+      case 'violet': return 'from-violet-500 to-fuchsia-600 border-violet-400 text-violet-500';
+      case 'amber': return 'from-amber-400 to-orange-500 border-amber-300 text-amber-500';
+      case 'sky': return 'from-sky-400 to-indigo-600 border-sky-300 text-sky-400';
+      default: return 'from-pink-500 to-rose-600 border-pink-400 text-pink-500';
+    }
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 justify-center items-center min-h-screen bg-slate-950 font-sans p-6 antialiased text-slate-800">
+    <div className="flex flex-col lg:flex-row gap-8 justify-center items-center min-h-screen bg-slate-950 font-sans p-6 antialiased text-slate-800" onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
       
-      {/* LEFT COLUMN: Project branding and info */}
-      <div className="max-w-md text-white space-y-4 px-4">
+      {/* LEFT COLUMN: Project branding, anti-inflation statement & statistics info */}
+      <div className="max-w-md text-white space-y-5 px-4">
         <div className="inline-flex items-center gap-2 bg-pink-500/10 border border-pink-500/20 text-pink-400 px-3 py-1.5 rounded-full text-xs font-semibold">
-          <Sparkles className="w-3.5 h-3.5" /> Hackathon Prototype v3.0 (Fully Playable)
+          <Sparkles className="w-3.5 h-3.5 animate-pulse" /> เวอร์ชันอัปเดตแก้วิกฤตการณ์เหรียญเฟ้อ
         </div>
         <h2 className="text-3xl font-black tracking-tight leading-tight bg-gradient-to-r from-pink-500 via-rose-400 to-emerald-400 bg-clip-text text-transparent">
-          CU Eco-Verse
+          CU Eco-Verse 🌳
         </h2>
         <p className="text-sm font-medium text-slate-300 leading-relaxed">
-          เปลี่ยนไอเดียด้านระบบประหยัดพลังงานที่ซับซ้อนให้กลายเป็น **"เกม RPG บนโลกจริง"** สะสม Eco-Coins ลดคาร์บอนฟุตพริ้นท์จริงผ่านแอปจำลองบนสมาร์ตโฟนของนิสิตทุกคน
+          เปลี่ยนพฤติกรรมอนุรักษ์สิ่งแวดล้อมให้เป็นกลไกเกมแสนสนุก โดยผสานฐานข้อมูลจริงผ่านระบบ **CUBEMS** พร้อมฟังก์ชันลากวางในมินิเกมเพื่อพิชิตคะแนน!
         </p>
 
-        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-2 text-xs">
+        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-3 text-xs leading-relaxed">
           <h4 className="font-bold text-slate-200 flex items-center gap-1.5 text-rose-400">
-            💡 สิทธิ์พิเศษและ Block Blast มินิเกม:
+            📌 ฟังก์ชันที่อัปเกรดในรุ่นนี้:
           </h4>
-          <ul className="space-y-1.5 text-slate-400 list-disc list-inside">
-            <li><span className="text-pink-400 font-semibold">หน้าแรก</span> - ย้ายอันดับกิลด์ระหว่างคณะมาไว้ด้านล่างแล้ว เพื่อให้เช็คคะแนนความสามัคคีได้รวดเร็ว</li>
-            <li><span className="text-pink-400 font-semibold">เควสครบ 3</span> - ทำภารกิจรายวันหรือห้องเรียนให้ครบ 3 เควสเพื่อรับสิทธิ์ **Extra Eco-Coins** อัตราแลกเปลี่ยนพิเศษ!</li>
-            <li><span className="text-pink-400 font-semibold">Block Blast</span> - เล่นเกมเรียงแถวเพื่อแปลงคะแนนเป็น Eco-Coins ได้ทุกที่ทุกเวลาในกระเป๋าของคุณ!</li>
+          <ul className="space-y-2 text-slate-400 list-disc list-inside">
+            <li><span className="text-pink-400 font-semibold">แก้ปัญหาหน้าขาวตอนทำเควส:</span> เพิ่มระบบ **Anti-Cheat Verification Simulator** เพื่อจำลองพิกัดภาพถ่ายและสัญญาณ CUBEMS ก่อนได้รับสิทธิ์</li>
+            <li><span className="text-pink-400 font-semibold">ต้านทานระบบเงินเฟ้อ:</span> ปรับเปลี่ยนค่าสิทธิประโยชน์แลกของรางวัลในสโมสรจุฬาฯ ให้สูงและสมจริงยิ่งขึ้น เพื่อป้องปัญหามูลค่าเหรียญตกต่ำ</li>
+            <li><span className="text-pink-400 font-semibold">เพิ่มเควสรักษ์โลกใหม่:</span> เควสบันไดพยุงโลก, เควสแยกขวด PET & กระป๋อง และการพกกล่องข้าวส่วนตัว</li>
+            <li><span className="text-pink-400 font-semibold">มินิเกมระบบลากวางบล็อก:</span> คุณสามารถสัมผัสเลื่อนหน้าจอเพื่อวางบล็อก และแลก Eco-Coins ได้เฉพาะเมื่อคุณพิชิตเควสครบ 3 เควสขึ้นไปวันนี้!</li>
           </ul>
         </div>
       </div>
 
       {/* RIGHT COLUMN: Mobile simulator container */}
-      <div className="relative w-full max-w-[390px] h-[750px] bg-white rounded-[44px] shadow-2xl border-[10px] border-slate-900 overflow-hidden flex flex-col shrink-0">
+      <div className="relative w-full max-w-[390px] h-[780px] bg-white rounded-[44px] shadow-2xl border-[10px] border-slate-900 overflow-hidden flex flex-col shrink-0">
         
         {/* Notch hardware simulator */}
         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-slate-900 rounded-b-2xl z-40 flex items-center justify-center">
@@ -490,7 +562,7 @@ export default function App() {
         {/* Brand Bar Header */}
         <div className="bg-white border-b border-slate-100 px-4 py-2 flex justify-between items-center z-10 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 bg-pink-500 rounded-full animate-pulse"></span>
+            <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></span>
             <span className="text-xs font-black tracking-wider text-slate-800">ECO-VERSE</span>
           </div>
           <div className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-full text-[10px] font-bold text-slate-700">
@@ -502,8 +574,88 @@ export default function App() {
         {/* Dynamic Toast Render inside Mobile Frame */}
         {toast && (
           <div className="absolute top-12 left-4 right-4 bg-slate-900 text-white text-[10.5px] p-2.5 rounded-xl shadow-lg z-50 flex items-center gap-2 border border-slate-800 animate-bounce">
-            <Sparkles className="w-4 h-4 text-pink-400 shrink-0" />
+            <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
             <p className="leading-tight">{toast.message}</p>
+          </div>
+        )}
+
+        {/* INTERACTIVE STEP-BY-STEP VERIFICATION MODAL */}
+        {verifyingQuest && (
+          <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-900 text-white rounded-3xl p-5 w-full max-w-[320px] space-y-4 border border-slate-800">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-950 px-2.5 py-0.5 rounded-full">
+                  กำลังพิสูจน์เควส
+                </span>
+                <button onClick={() => setVerifyingQuest(null)} className="p-1 text-slate-400 hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-black text-white">{verifyingQuest.title}</h4>
+                <p className="text-[11px] text-slate-400 mt-1">{verifyingQuest.desc}</p>
+              </div>
+
+              {/* Progress Steps Visualizer */}
+              <div className="space-y-2.5 bg-black/40 p-3 rounded-2xl text-[11px]">
+                {/* Step 1: GPS check */}
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">1. การยืนยันตำแหน่ง GPS & Beacon</span>
+                  {verificationStep >= 1 ? (
+                    <span className="text-emerald-400 font-bold">✓ ผ่านด่าน</span>
+                  ) : (
+                    <span className="text-slate-500 animate-pulse">กำลังสแกน...</span>
+                  )}
+                </div>
+
+                {/* Step 2: Photo capture simulation */}
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">2. ถ่ายภาพความเรียบร้อย (AI Scan)</span>
+                  {photoCaptured ? (
+                    <span className="text-emerald-400 font-bold">✓ ถ่ายแล้ว</span>
+                  ) : verificationStep >= 1 ? (
+                    <span className="text-pink-400 font-bold animate-pulse">📸 รอถ่ายรูป</span>
+                  ) : (
+                    <span className="text-slate-600">รอดำเนินการ</span>
+                  )}
+                </div>
+
+                {/* Step 3: CUBEMS linkage */}
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">3. เชื่อมข้อมูลลดโหลดไฟ CUBEMS</span>
+                  {verificationStep >= 3 ? (
+                    <span className="text-emerald-400 font-bold">✓ เชื่อมสำเร็จ</span>
+                  ) : verificationStep >= 2 ? (
+                    <span className="text-emerald-400 animate-pulse">กำลังดึงข้อมูล...</span>
+                  ) : (
+                    <span className="text-slate-600">รอดำเนินการ</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Dynamic Interactive button for steps */}
+              {verificationStep < 3 ? (
+                <button 
+                  onClick={handleNextVerificationStep}
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  {verificationStep === 0 && <>ถัดไป: เช็คพิกัด Beacon</>}
+                  {verificationStep === 1 && <><Camera className="w-4 h-4" /> แตะเพื่อถ่ายภาพประกอบ</>}
+                  {verificationStep === 2 && <>ขั้นตอนสุดท้าย: อัปโหลดข้อมูล CUBEMS</>}
+                </button>
+              ) : (
+                <div className="text-center py-2 space-y-2">
+                  <p className="text-emerald-400 font-bold text-xs">🎉 ยินยันเสร็จสมบูรณ์ 100%!</p>
+                  <button 
+                    onClick={() => setVerifyingQuest(null)}
+                    className="w-full bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-semibold"
+                  >
+                    ปิดหน้าต่างนี้
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -515,7 +667,7 @@ export default function App() {
             <div className="p-4 space-y-4 animate-fadeIn">
               
               {/* Premium Carbon Hero Profile Card */}
-              <div className="bg-gradient-to-br from-rose-600 via-pink-600 to-rose-700 rounded-3xl p-4 text-white shadow-lg relative overflow-hidden">
+              <div className="bg-gradient-to-br from-indigo-600 via-rose-600 to-indigo-700 rounded-3xl p-4 text-white shadow-lg relative overflow-hidden">
                 <div className="absolute right-[-20px] bottom-[-20px] opacity-10">
                   <Award className="w-32 h-32 rotate-12" />
                 </div>
@@ -528,13 +680,13 @@ export default function App() {
                     <h3 className="text-base font-black mt-1">เกียรติศักดิ์ วิศวฯ ปี 1</h3>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] text-pink-200">Carbon Hero</p>
+                    <p className="text-[10px] text-indigo-200">Carbon Guard</p>
                     <p className="text-sm font-black text-white">Level {level}</p>
                   </div>
                 </div>
 
                 <div className="mt-4 space-y-1">
-                  <div className="flex justify-between text-[10px] font-semibold text-pink-100">
+                  <div className="flex justify-between text-[10px] font-semibold text-indigo-100">
                     <span>ค่าประสบการณ์ (XP)</span>
                     <span>{xp}/{xpNeededForNextLevel} XP</span>
                   </div>
@@ -545,13 +697,13 @@ export default function App() {
 
                 <div className="mt-4 pt-3 border-t border-white/10 grid grid-cols-2 gap-3">
                   <div className="bg-white/10 backdrop-blur-md p-2 rounded-xl border border-white/10">
-                    <p className="text-[9px] text-pink-100">กระเป๋า Eco-Coins</p>
+                    <p className="text-[9px] text-indigo-100">กระเป๋า Eco-Coins</p>
                     <p className="text-base font-black mt-0.5 flex items-center gap-1 text-yellow-300">
                       {coins.toLocaleString()} <span className="text-[10px] bg-white/20 text-white px-1 py-0.2 rounded">🪙</span>
                     </p>
                   </div>
                   <div className="bg-white/10 backdrop-blur-md p-2 rounded-xl border border-white/10">
-                    <p className="text-[9px] text-pink-100">คาร์บอนที่ลดสะสม</p>
+                    <p className="text-[9px] text-indigo-100">คาร์บอนที่ลดสะสม</p>
                     <p className="text-base font-black mt-0.5 text-emerald-300">
                       {carbonSaved} <span className="text-[10px] text-white">kg CO₂e</span>
                     </p>
@@ -594,7 +746,7 @@ export default function App() {
                     น้อง Greeny ท้าทาย! <Sparkles className="w-3.5 h-3.5 text-pink-500 fill-pink-500" />
                   </h4>
                   <p className="text-[10px] text-slate-600 mt-0.5 leading-relaxed">
-                    "ยินดีต้อนรับสู่ CU Eco-Verse! พิเศษวันนี้ ทำเควสให้ครบ 3 เควสเพื่อปลดสิทธิ์แลกแต้ม Block Blast คูณ 2 เท่า!"
+                    "พิชิต 3 เควสเพื่อปลดล็อกการแลกรางวัลเหรียญทองในมินิเกมวันนี้กันเถอะครับ!"
                   </p>
                 </div>
               </div>
@@ -603,9 +755,11 @@ export default function App() {
               <div className="bg-white rounded-2xl p-3 border border-slate-200/80 shadow-xs">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-[10.5px] font-extrabold text-slate-700 flex items-center gap-1">
-                    🎯 ความคืบหน้าสิทธิ์มินิเกมวันนี้
+                    🎯 เควสเพื่อปลดล็อคเกมและรางวัลคอยน์วันนี้
                   </span>
-                  <span className="text-[10px] font-black text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full">
+                  <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
+                    isEligibleToConvert ? 'bg-emerald-100 text-emerald-700' : 'bg-pink-50 text-pink-600'
+                  }`}>
                     {completedQuests.length}/3 เควส
                   </span>
                 </div>
@@ -615,10 +769,10 @@ export default function App() {
                     style={{ width: `${Math.min((completedQuests.length / 3) * 100, 100)}%` }}
                   ></div>
                 </div>
-                <p className="text-[9.5px] text-slate-500 leading-normal">
-                  {isEligibleForExtraRewards 
-                    ? "✨ คุณได้รับสิทธิ์พิเศษแล้ว! อัตราแลกคะแนน Block Blast ดีขึ้น 2 เท่า (5,000 แต้ม = 1 🪙)" 
-                    : "ทำเควสให้ครบ 3 เพื่อปลดล็อกอัตราการแลกเปลี่ยนพิเศษที่ดีขึ้น 2 เท่า!"}
+                <p className="text-[9.5px] text-slate-500 leading-normal flex items-center gap-1">
+                  {isEligibleToConvert 
+                    ? "✨ ปลดล็อกสิทธิ์แล้ว! คุณสามารถแปลงแต้มเกม Block Blast เป็น Coins วันนี้ได้สำเร็จ!" 
+                    : "🔒 ยังไม่ได้รับสิทธิ์แลกแต้มมินิเกม (ทำภารกิจให้ครบ 3 ก่อนครับ)"}
                 </p>
               </div>
 
@@ -626,14 +780,14 @@ export default function App() {
               <div className="bg-white rounded-2xl p-3 border border-slate-200/80 shadow-xs space-y-3">
                 <div className="flex justify-between items-center">
                   <h4 className="text-xs font-black text-slate-800 tracking-tight flex items-center gap-1">
-                    <Users className="w-4 h-4 text-pink-600" /> อันดับคณะและการมีส่วนร่วม (RES-Rank)
+                    <Users className="w-4 h-4 text-indigo-600" /> อันดับคณะและการมีส่วนร่วม (RES-Rank)
                   </h4>
                   <span className="text-[9px] text-slate-400 font-semibold bg-slate-100 px-1.5 py-0.5 rounded">ซีซั่น 1</span>
                 </div>
 
                 <div className="space-y-2">
                   {/* Rank 1 */}
-                  <div className="bg-gradient-to-r from-pink-50 to-rose-50 border border-pink-100 rounded-xl p-2.5 flex justify-between items-center">
+                  <div className="bg-gradient-to-r from-pink-50 to-indigo-50 border border-pink-100 rounded-xl p-2.5 flex justify-between items-center">
                     <div className="flex items-center gap-2.5">
                       <div className="w-6 h-6 rounded-full bg-pink-100 border border-pink-200 text-pink-600 font-black text-[10px] flex items-center justify-center">
                         👑 1
@@ -688,28 +842,6 @@ export default function App() {
                       <span className="text-[8px] text-slate-400">สายเดินเรียน</span>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Recommended Action Shortcuts */}
-              <div>
-                <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1 mb-2">
-                  <Flame className="w-4 h-4 text-rose-500" /> เควสแนะนำด่วนสำหรับคุณ
-                </h4>
-                <div className="space-y-2">
-                  <button 
-                    onClick={() => { setActiveTab('quests'); setActiveQuestTab('classroom'); }}
-                    className="w-full bg-white rounded-2xl p-3 border border-slate-200/60 shadow-xs flex justify-between items-center text-left hover:bg-slate-50 transition-all"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-pink-50 flex items-center justify-center text-lg">🔌</div>
-                      <div>
-                        <h5 className="text-[11px] font-bold text-slate-800">ปิดโปรเจกเตอร์ตึกวิศวกรรมศาสตร์</h5>
-                        <p className="text-[9px] text-slate-500">ลด Phantom Load ประจำอาคารเรียนรวม</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400" />
-                  </button>
                 </div>
               </div>
 
@@ -786,67 +918,32 @@ export default function App() {
 
               {/* Transit Options cards */}
               <div className="space-y-2.5">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">โปรดเลือกช่องทางการเดินทางเพื่อไปเรียน</p>
-
-                {routesData.map(route => {
-                  const isThisRouteSelected = chosenRoute === route.id;
-                  
+                {questsData.classroom.map(route => {
                   return (
                     <div 
                       key={route.id}
-                      className={`bg-white rounded-2xl p-3 border-2 transition-all flex justify-between items-center ${
-                        isThisRouteSelected 
-                          ? 'border-emerald-500 bg-emerald-50/20' 
-                          : 'border-slate-100 hover:border-slate-200'
-                      }`}
+                      className="bg-white rounded-2xl p-3 border-2 transition-all flex justify-between items-center"
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center font-bold text-lg ${
-                          route.color === 'emerald' ? 'bg-emerald-50 text-emerald-700' :
-                          route.color === 'indigo' ? 'bg-indigo-50 text-indigo-700' :
-                          route.color === 'pink' ? 'bg-pink-50 text-pink-700' : 'bg-slate-100 text-slate-700'
-                        }`}>
-                          {route.id === 'r_walk' ? '👟' : route.id === 'r_bike' ? '🚲' : route.id === 'r_pop' ? '🚌' : '🛵'}
+                        <div className="w-10 h-10 rounded-xl flex flex-col items-center justify-center font-bold text-lg bg-emerald-50 text-emerald-700">
+                          {route.icon}
                         </div>
 
                         <div>
-                          <div className="flex items-center gap-1.5">
-                            <h4 className="text-[11px] font-bold text-slate-800">{route.title}</h4>
-                            {route.isEco && (
-                              <span className="text-[8px] bg-emerald-600 text-white px-1.5 py-0.2 rounded-full font-extrabold uppercase">
-                                Recommended
-                              </span>
-                            )}
-                          </div>
+                          <h4 className="text-[11px] font-bold text-slate-800">{route.title}</h4>
                           <p className="text-[9px] text-slate-500 leading-tight mt-0.5">{route.desc}</p>
                           <p className="text-[9px] text-slate-400 mt-1">
-                            ⏱️ {route.time} | 📏 {route.dist} | 🌳 คาร์บอน: <span className="font-bold text-rose-500">{route.carbon}</span>
+                            🌱 คาร์บอนลดลง: <span className="font-bold text-emerald-600">{route.carbon} kg</span>
                           </p>
                         </div>
                       </div>
 
-                      <div className="text-right shrink-0">
-                        {chosenRoute ? (
-                          isThisRouteSelected ? (
-                            <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-0.5">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> เดินทางแล้ว
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-slate-400 font-medium">จำกัดสิทธิ์</span>
-                          )
-                        ) : (
-                          <button 
-                            onClick={() => handleSelectRoute(route)}
-                            className={`text-[10px] font-black px-3 py-1.5 rounded-xl transition-all ${
-                              route.isEco 
-                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
-                                : 'bg-slate-800 hover:bg-slate-900 text-white'
-                            }`}
-                          >
-                            +{route.coins}🪙
-                          </button>
-                        )}
-                      </div>
+                      <button 
+                        onClick={() => handleInitiateQuestVerification(route)}
+                        className="text-[10px] font-black px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        +{route.reward}🪙
+                      </button>
                     </div>
                   );
                 })}
@@ -929,7 +1026,7 @@ export default function App() {
                             </span>
                           ) : (
                             <button 
-                              onClick={() => handleCompleteQuest(quest)}
+                              onClick={() => handleInitiateQuestVerification(quest)}
                               className="bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-bold px-3 py-1.5 rounded-xl transition-colors"
                             >
                               ทำภารกิจ
@@ -964,7 +1061,7 @@ export default function App() {
 
                 <div className="mt-4 pt-3 border-t border-indigo-800 flex justify-between text-[10px] text-indigo-200">
                   <div>
-                    <p className="text-[9px] text-indigo-400">เทียบเท่าสิทธิ์คืนมัดจำ</p>
+                    <p className="text-[9px] text-indigo-400">เทียบเท่ามูลค่าสิ่งแวดล้อม</p>
                     <p className="font-bold text-white">{ (coins / 10).toFixed(0) } บาท</p>
                   </div>
                   <div>
@@ -990,16 +1087,16 @@ export default function App() {
                         <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-lg shrink-0">
                           {reward.icon}
                         </div>
-                        <div>
-                          <h5 className="text-[11px] font-bold text-slate-800">{reward.title}</h5>
+                        <div className="flex-1 min-w-0">
+                          <h5 className="text-[11px] font-bold text-slate-800 truncate">{reward.title}</h5>
                           <p className="text-[9px] text-slate-500 leading-tight mt-0.5">{reward.desc}</p>
-                          <p className="text-[9px] text-slate-400 mt-1">ใช้ {reward.cost} 🪙 แลกซื้อ</p>
+                          <p className="text-[9px] text-pink-600 font-extrabold mt-1">ใช้ {reward.cost} 🪙 แลกซื้อ</p>
                         </div>
                       </div>
 
                       <button 
                         onClick={() => handleRedeem(reward)}
-                        className="bg-pink-600 hover:bg-pink-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-xl whitespace-nowrap"
+                        className="bg-pink-600 hover:bg-pink-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-xl whitespace-nowrap ml-2"
                       >
                         แลกสิทธิ์
                       </button>
@@ -1032,7 +1129,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 5: MINIGAME BLOCK BLAST */}
+          {/* TAB 5: MINIGAME BLOCK BLAST WITH FLUID DRAGGING PHYSICS */}
           {activeTab === 'game' && (
             <div className="p-4 space-y-4 animate-fadeIn">
               
@@ -1040,63 +1137,92 @@ export default function App() {
               <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white rounded-3xl p-4 border border-indigo-500/25 shadow-md">
                 <div className="flex justify-between items-center">
                   <span className="text-[9px] bg-indigo-500/30 text-indigo-200 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                    <Gamepad2 className="w-3.5 h-3.5 text-pink-400 animate-pulse" /> ECO BLOCK BLAST
+                    <Gamepad2 className="w-3.5 h-3.5 text-emerald-400 animate-pulse" /> ECO BLOCK BLAST
                   </span>
-                  <span className="text-[10px] text-yellow-400 font-extrabold flex items-center gap-1">
-                    🏆 คะแนน: {score.toLocaleString()}
+                  <span className="text-[10px] text-emerald-400 bg-emerald-950/50 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                    🎨 ธีม: <span className="uppercase font-black text-white">{currentTheme}</span>
                   </span>
+                </div>
+
+                {/* Highly Visible Neon Score Counter */}
+                <div className="text-center py-2.5 my-2 bg-black/40 rounded-2xl border border-indigo-500/20">
+                  <p className="text-[10px] text-indigo-300 font-bold uppercase tracking-widest">คะแนนที่ทำได้ตอนนี้</p>
+                  <p className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-indigo-300 tracking-tight animate-pulse mt-1">
+                    {score.toLocaleString()}
+                  </p>
                 </div>
 
                 {/* Score to Coin Conversion panel */}
                 <div className="mt-4 pt-3 border-t border-indigo-800/80 flex items-center justify-between">
-                  <div>
+                  <div className="flex-1 pr-3">
                     <p className="text-[8.5px] text-indigo-300">อัตราแปลงพิกเซลความดีของคุณ</p>
-                    <p className="text-[11px] font-bold text-white flex items-center gap-1 mt-0.5">
-                      {isEligibleForExtraRewards ? (
-                        <>
-                          <span className="text-emerald-400 font-black">🌟 5,000 คะแนน</span> = 1 🪙
-                        </>
-                      ) : (
-                        <>
-                          <span>10,000 คะแนน</span> = 1 🪙
-                        </>
-                      )}
+                    <p className="text-[10.5px] font-bold text-white flex items-center gap-1 mt-0.5">
+                      <span className="text-emerald-400 font-black">10,000 คะแนน</span> = 1 🪙
                     </p>
-                    <p className="text-[8px] text-pink-400 mt-0.5">
-                      {isEligibleForExtraRewards ? "🔥 สิทธิ์พิเศษคูณสองแอกทีฟ!" : "ทำครบ 3 เควสเพื่อสิทธิ์แลกคูณ 2"}
+                    <p className="text-[8.5px] text-slate-400 mt-1 flex items-center gap-1">
+                      {isEligibleToConvert ? (
+                        <span className="text-emerald-400 font-semibold">✓ ปลดล็อกสิทธิ์สำเร็จแล้ว!</span>
+                      ) : (
+                        <span className="text-pink-400 flex items-center gap-1"><Lock className="w-3 h-3" /> เคลียร์ให้ครบ 3 เควสเพื่อแลก</span>
+                      )}
                     </p>
                   </div>
 
                   <button 
                     onClick={handleConvertScoreToCoins}
-                    className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-[10.5px] font-black px-3 py-1.5 rounded-xl shadow transition-colors flex items-center gap-1"
+                    disabled={!isEligibleToConvert}
+                    className={`text-[10.5px] font-black px-3.5 py-2 rounded-xl shadow transition-colors flex items-center gap-1 ${
+                      isEligibleToConvert 
+                        ? 'bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold shadow-lg animate-bounce' 
+                        : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                    }`}
                   >
-                    <Coins className="w-3.5 h-3.5" /> แลกเหรียญ
+                    {isEligibleToConvert ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />} แลกเหรียญ
                   </button>
                 </div>
               </div>
 
-              {/* Main Game Grid (6x6 Grid Block Blast) */}
+              {/* Main Game Grid (6x6 Grid Block Blast with Drag Placement Hover Preview) */}
               <div className="flex flex-col items-center justify-center space-y-3">
                 <div className="bg-slate-900 p-3 rounded-2xl border-4 border-slate-800 shadow-xl max-w-full">
-                  <div className="grid grid-cols-6 gap-1.5 w-[260px] h-[260px]">
+                  <div id="game-grid-board" className="grid grid-cols-6 gap-1.5 w-[260px] h-[260px] relative">
                     {grid.map((row, rIdx) => 
-                      row.map((cell, cIdx) => (
-                        <button
-                          key={`${rIdx}-${cIdx}`}
-                          onClick={() => handleGridCellClick(rIdx, cIdx)}
-                          className={`w-full h-full rounded-md transition-all relative overflow-hidden ${
-                            cell === 1 
-                              ? 'bg-gradient-to-br from-pink-500 to-rose-600 shadow-md border border-pink-400' 
-                              : 'bg-slate-800 hover:bg-slate-700/80 border border-slate-950/40'
-                          }`}
-                        >
-                          {/* Inner shine effect on placed block */}
-                          {cell === 1 && (
-                            <span className="absolute inset-0 bg-white/10 rounded-md"></span>
-                          )}
-                        </button>
-                      ))
+                      row.map((cell, cIdx) => {
+                        // Check if dragged shape hover fits here as indicator
+                        let isHovered = false;
+                        if (draggedShapeIdx !== null && hoverCell) {
+                          const activeShape = availableShapes[draggedShapeIdx];
+                          if (activeShape) {
+                            const sRows = activeShape.cells.length;
+                            const sCols = activeShape.cells[0].length;
+                            const dR = rIdx - hoverCell.r;
+                            const dC = cIdx - hoverCell.c;
+                            if (dR >= 0 && dR < sRows && dC >= 0 && dC < sCols) {
+                              if (activeShape.cells[dR][dC] === 1) {
+                                isHovered = true;
+                              }
+                            }
+                          }
+                        }
+
+                        return (
+                          <div
+                            key={`${rIdx}-${cIdx}`}
+                            className={`w-full h-full rounded-md transition-all relative overflow-hidden flex items-center justify-center ${
+                              cell === 1 
+                                ? `bg-gradient-to-br ${getThemeBlockClass(currentTheme)} shadow-md border` 
+                                : isHovered
+                                ? 'bg-indigo-500/20 border border-indigo-400/50 animate-pulse'
+                                : 'bg-slate-800 border border-slate-950/40'
+                            }`}
+                          >
+                            {/* Inner shine effect on placed block */}
+                            {cell === 1 && (
+                              <span className="absolute inset-0 bg-white/10 rounded-md"></span>
+                            )}
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </div>
@@ -1114,10 +1240,18 @@ export default function App() {
                   </div>
                 )}
 
+                {/* Drag-and-Drop Active Preview Overlay */}
+                {draggedShapeIdx !== null && (
+                  <div className="text-[10px] font-bold text-indigo-400 flex items-center gap-1 bg-indigo-950/40 px-3 py-1 rounded-full border border-indigo-800/30">
+                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping"></span>
+                    ปล่อยนิ้วลงบนกระดานด้านบนเพื่อวางพิกัด
+                  </div>
+                )}
+
                 {/* Handheld shape generator deck */}
                 <div className="w-full space-y-2">
                   <p className="text-[10px] text-center font-bold text-slate-400 uppercase tracking-wider">
-                    แตะเลือกบล็อกด้านล่าง แล้วแตะวางพิกัดบนกระดาน 🧩
+                    แตะค้างและลากบล็อกไปวางในพิกัดกระดาน 🧩
                   </p>
 
                   <div className="grid grid-cols-3 gap-3 bg-white p-3 rounded-2xl border border-slate-200/80">
@@ -1126,7 +1260,7 @@ export default function App() {
                         return (
                           <div 
                             key={shapeIdx} 
-                            className="h-16 flex items-center justify-center rounded-xl bg-slate-50 border border-dashed border-slate-200 text-slate-300 text-[10px]"
+                            className="h-20 flex items-center justify-center rounded-xl bg-slate-50 border border-dashed border-slate-200 text-slate-300 text-[10px]"
                           >
                             หมดแล้ว
                           </div>
@@ -1135,34 +1269,36 @@ export default function App() {
 
                       const isSelected = selectedShapeIdx === shapeIdx;
                       return (
-                        <button
+                        <div
                           key={shapeIdx}
-                          onClick={() => selectShapeToPlace(shapeIdx)}
-                          className={`p-2 rounded-xl border-2 transition-all flex flex-col items-center justify-center h-20 ${
+                          onPointerDown={(e) => handlePointerDown(e, shapeIdx)}
+                          className={`p-2 rounded-xl border-2 transition-all flex flex-col items-center justify-center h-20 cursor-grab active:cursor-grabbing touch-none select-none ${
                             isSelected 
-                              ? 'border-pink-500 bg-pink-50/20 scale-105 shadow-md' 
+                              ? 'border-indigo-500 bg-indigo-50/20 scale-105 shadow-md' 
                               : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50'
                           }`}
                         >
                           {/* Visual render of the available mini tetromino shape */}
-                          <div className="flex flex-col gap-0.5 justify-center items-center">
+                          <div className="flex flex-col gap-0.5 justify-center items-center pointer-events-none">
                             {shape.cells.map((row, r) => (
                               <div key={r} className="flex gap-0.5">
                                 {row.map((cell, c) => (
                                   <div 
                                     key={c} 
                                     className={`w-2.5 h-2.5 rounded-xs ${
-                                      cell === 1 ? 'bg-pink-500' : 'bg-transparent'
+                                      cell === 1 
+                                        ? `bg-gradient-to-br ${getThemeBlockClass(currentTheme)}` 
+                                        : 'bg-transparent'
                                     }`}
                                   />
                                 ))}
                               </div>
                             ))}
                           </div>
-                          <span className="text-[8.5px] font-extrabold mt-2 text-slate-600 uppercase">
+                          <span className="text-[8.5px] font-extrabold mt-2 text-slate-500 uppercase tracking-wider pointer-events-none">
                             {shape.name}
                           </span>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -1174,7 +1310,7 @@ export default function App() {
                     onClick={handleResetGame}
                     className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-3.5 py-2 rounded-xl transition-all"
                   >
-                    <RefreshCw className="w-3.5 h-3.5" /> รีเซ็ตเกมทั้งหมด
+                    <RotateCcw className="w-3.5 h-3.5" /> รีเซ็ตคะแนนเกมใหม่
                   </button>
                 </div>
               </div>
@@ -1191,7 +1327,7 @@ export default function App() {
           <button 
             onClick={() => setActiveTab('home')}
             className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all ${
-              activeTab === 'home' ? 'text-pink-600 scale-105' : 'text-slate-400 hover:text-slate-600'
+              activeTab === 'home' ? 'text-indigo-600 scale-105' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
             <Compass className={`w-5.5 h-5.5 ${activeTab === 'home' ? 'stroke-[2.5px]' : 'stroke-[1.8px]'}`} />
@@ -1202,7 +1338,7 @@ export default function App() {
           <button 
             onClick={() => setActiveTab('route')}
             className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all ${
-              activeTab === 'route' ? 'text-pink-600 scale-105' : 'text-slate-400 hover:text-slate-600'
+              activeTab === 'route' ? 'text-indigo-600 scale-105' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
             <MapPin className={`w-5.5 h-5.5 ${activeTab === 'route' ? 'stroke-[2.5px]' : 'stroke-[1.8px]'}`} />
@@ -1213,7 +1349,7 @@ export default function App() {
           <button 
             onClick={() => setActiveTab('quests')}
             className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all ${
-              activeTab === 'quests' ? 'text-pink-600 scale-105' : 'text-slate-400 hover:text-slate-600'
+              activeTab === 'quests' ? 'text-indigo-600 scale-105' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
             <Award className={`w-5.5 h-5.5 ${activeTab === 'quests' ? 'stroke-[2.5px]' : 'stroke-[1.8px]'}`} />
@@ -1224,7 +1360,7 @@ export default function App() {
           <button 
             onClick={() => setActiveTab('wallet')}
             className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all ${
-              activeTab === 'wallet' ? 'text-pink-600 scale-105' : 'text-slate-400 hover:text-slate-600'
+              activeTab === 'wallet' ? 'text-indigo-600 scale-105' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
             <Wallet className={`w-5.5 h-5.5 ${activeTab === 'wallet' ? 'stroke-[2.5px]' : 'stroke-[1.8px]'}`} />
@@ -1235,7 +1371,7 @@ export default function App() {
           <button 
             onClick={() => setActiveTab('game')}
             className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all ${
-              activeTab === 'game' ? 'text-pink-600 scale-105' : 'text-slate-400 hover:text-slate-600'
+              activeTab === 'game' ? 'text-indigo-600 scale-105' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
             <Gamepad2 className={`w-5.5 h-5.5 ${activeTab === 'game' ? 'stroke-[2.5px]' : 'stroke-[1.8px]'}`} />
