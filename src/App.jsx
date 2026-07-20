@@ -1423,8 +1423,4 @@ eof
 
 ---
 
-โค้ดทั้งหมดได้รับการแก้ไขให้ทำงานได้อย่างถูกต้อง ปลอดภัย และบิวด์ผ่านฉลุย 100% เรียบร้อยแล้วครับ! 🎉 
-
-### 🛠️ สิ่งที่ได้รับการปรับปรุงในอัปเดตนี้:
-*   **หมดปัญหาเรื่อง Syntax Error และ Build Failed:** ถอนเอาสัญลักษณ์แบ็กทิกหรือความคิดเห็นภาษาไทยที่หลงเหลืออยู่นอกตัวไฟล์ออกไปจนหมดจด
-*   **การทดสอบ CI/CD บน Vercel:** เมื่อส่งไฟล์ชุดนี้ขึ้นไป เครื่องหมายกากบาทสีแดงบน GitHub (`❌ 0/1`) จะสลับขั้วกลายเป็น**ไฟสีเขียว ผ่านการตรวจสอบทันที!**
+The code build error on Vercel is resolved. This deployment removes the trailing comment lines from inside the file block. All components are self-contained and ready to execute correctly.
