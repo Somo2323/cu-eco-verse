@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { 
   Compass, 
   MapPin, 
@@ -16,8 +16,6 @@ import {
   Unlock,
   RotateCcw,
   QrCode,
-  ShieldAlert,
-  ShieldCheck,
   UserPlus
 } from 'lucide-react';
 
@@ -177,7 +175,30 @@ export default function App() {
   };
 
   const mobilityData = [
-    { id: 'm_bus', title: 'นั่งรถไฟฟ้า EV Pop Bus', desc: 'โดยสารรถป๊อปไฟฟ้าของมหาวิทยาลัยแทนรถส่วนตัว', verify: 'GPS + สแกน QR บนรถ', risk: 'ปานกลาง', riskDesc: 'GPS Spoof ได้ แต่ต้องมี QR ยืนยัน', reward: 10, xp: 25, carbon: 0.6, icon: '🚌' },
+    { id: 'm_bus', title: 'นั่งรถไฟฟ้า EV Pop Bus', desc: 'โดยสารรถป๊อปไฟฟ้าของมหาวิทยาลัยแทนรถส่วนตัว', verify: 'GPS + สแกน QR บนรถ', reward: 10, xp: 25, carbon: 0.6, icon: '🚌' },
+    { id: 'm_walk', title: 'เดินสัญจรทางสีเขียว', desc: 'เดินเรียนผ่านเส้นทางสวนป่าจามจุรี หรือทางเท้าบังแดด', verify: 'GPS + เช็คความเร็วเฉลี่ย', reward: 15, xp: 35, carbon: 0.8, icon: '🚶‍♂️' },
+    { id: 'm_bike', title: 'ปั่นจักรยาน CU Bike', desc: 'ปั่นจักรยานสาธารณะแชร์ริ่งเพื่อเชื่อมต่อระหว่างตึกเรียน', verify: 'GPS + เช็คความเร็วเฉลี่ย', reward: 15, xp: 35, carbon: 1.1, icon: '🚲' }
+  ];
+
+  const zeroWasteQuests = [
+    { id: 'zw_sort', title: 'คัดแยกขยะประจำคณะ', desc: 'แยกขยะทั่วไป ขยะรีไซเคิล และเศษอาหาร ณ จุดแยกขยะ', verify: 'ถ่ายรูป + สแกน QR (วันละครั้ง)', reward: 10, xp: 25, carbon: 0.5, icon: '🗑️' },
+    { id: 'zw_bottle', title: 'คัดแยกขวด PET / กระป๋อง', desc: 'บดขวดพลาสติก PET หรือกระป๋องก่อนหยอดใส่ตู้รีไซเคิล', verify: 'ถ่ายรูป + สแกน QR (วันละครั้ง)', reward: 10, xp: 25, carbon: 0.7, icon: '🥫' },
+    { id: 'zw_recycle', title: 'ส่งขยะแห้งเข้ากระบวนการรีไซเคิล', desc: 'รวบรวมกล่องลัง กระดาษ หรือพลาสติกยืดส่งจุดรับรีไซเคิล', verify: 'ถ่ายรูป + สแกน QR (วันละครั้ง)', reward: 10, xp: 25, carbon: 0.8, icon: '♻️' },
+    { id: 'zw_bento', title: 'กล่องข้าว / ภาชนะหมุนเวียน', desc: 'ใช้กล่องข้าวและช้อนส้อมพกพาในโรงอาหาร สแกน QR ผ่านร้านค้า', verify: 'ถ่ายรูป + สแกน QR ผ่านร้านค้า', reward: 20, xp: 45, carbon: 1.2, icon: '🍱' },
+    { id: 'zw_water', title: 'เติมน้ำดื่ม (ห้ามใช้ขวดพลาสติก)', desc: 'นำกระบอกน้ำส่วนตัวมาเติมน้ำดื่ม ณ จุดบริการตู้เติมน้ำ', verify: 'ถ่ายรูป + สแกน QR ที่จุดเติมน้ำ', reward: 10, xp: 25, carbon: 0.4, icon: '💧' }
+  ];
+
+  const energyQuests = [
+    { id: 'be_power', title: 'ปิด/เปิดไฟฟ้าในห้องเรียน (On/Off)', desc: 'ปิดสวิตช์ไฟและแอร์เมื่อเลิกใช้งาน ระบบเทียบข้อมูล CUBEMS', verify: 'ข้อมูล Real-time จาก CUBEMS', reward: 20, xp: 50, carbon: 2.0, icon: '🔌' },
+    { id: 'be_stairs', title: 'เดินขึ้นบันไดแทนการใช้ลิฟต์', desc: 'เดินขึ้นลงบันไดตึกเรียนตั้งแต่ 3 ชั้นขึ้นไป สแกน QR ประจำชั้น', verify: 'สแกน QR Code ยืนยันพิกัดทุกชั้น', reward: 15, xp: 35, carbon: 0.5, icon: '🪜' }
+  ];
+
+  const socialQuests = [
+    { id: 'sc_friend', title: 'ชวนเพื่อนทำเควสร่วมกันสำเร็จ 1 ข้อ', desc: 'จับคู่ทำเควสสิ่งแวดล้อมใดก็ได้สำเร็จร่วมกันในวันนี้', verify: 'ยืนยันความสำเร็จร่วมกันในกลุ่มปาร์ตี้', reward: 20, xp: 60, carbon: 1.5, icon: '👥' }
+  ];
+
+  const handleInitiateQuestVerification = (quest) => {
+
     { id: 'm_walk', title: 'เดินสัญจรทางสีเขียว', desc: 'เดินเรียนผ่านเส้นทางสวนป่าจามจุรี หรือทางเท้าบังแดด', verify: 'GPS + เช็คความเร็วเฉลี่ย', risk: 'ง่าย', riskDesc: 'ตรวจจับพิกัดก้าวเดินและความเร็ว', reward: 15, xp: 35, carbon: 0.8, icon: '🚶‍♂️' },
     { id: 'm_bike', title: 'ปั่นจักรยาน CU Bike', desc: 'ปั่นจักรยานสาธารณะแชร์ริ่งเพื่อเชื่อมต่อระหว่างตึกเรียน', verify: 'GPS + เช็คความเร็วเฉลี่ย', risk: 'ง่าย', riskDesc: 'คำนวณความเร็วการปั่นสัญจร', reward: 15, xp: 35, carbon: 1.1, icon: '🚲' }
   ];
@@ -608,7 +629,51 @@ export default function App() {
                     <p className="text-[10px] text-pink-400 font-bold">รับ +{verifyingQuest.reward} Eco-Coins 🪙</p>
                   </div>
                 </div>
-                <div className="mt-2">
+              </div>
+
+              <div className="space-y-2 bg-black/40 p-3 rounded-2xl text-[10.5px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">
+                    1. {verifyingQuest.verify.split('+')[0] || 'ตรวจสอบตำแหน่ง'}
+                  </span>
+                  {verificationStep >= 1 ? (
+                    <span className="text-emerald-400 font-bold">✓ ตรวจพบ</span>
+                  ) : (
+                    <span className="text-slate-500 animate-pulse">กำลังสแกน...</span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">
+                    2. {verifyingQuest.verify.split('+')[1] || 'สแกน QR / ยืนยัน'}
+                  </span>
+                  {aiAnalyzing ? (
+                    <span className="text-amber-400 animate-pulse font-bold">กำลังสแกน...</span>
+                  ) : photoCaptured || qrScanned ? (
+                    <span className="text-emerald-400 font-bold">✓ ผ่านด่าน</span>
+                  ) : verificationStep >= 1 ? (
+                    <span className="text-pink-400 font-bold animate-pulse">📸 รอสแกน/ถ่ายรูป</span>
+                  ) : (
+                    <span className="text-slate-600">รอดำเนินการ</span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">
+                    3. บันทึกผลลงฐานข้อมูล
+                  </span>
+                  {verificationStep >= 3 ? (
+                    <span className="text-emerald-400 font-bold">✓ สำเร็จแล้ว</span>
+                  ) : verificationStep >= 2 ? (
+                    <span className="text-emerald-400 animate-pulse font-semibold">กำลังซิงก์...</span>
+                  ) : (
+                    <span className="text-slate-600">รอดำเนินการ</span>
+                  )}
+                </div>
+              </div>
+
+              {verificationStep < 3 ? (
+
                   {getRiskBadge(verifyingQuest.risk)}
                 </div>
               </div>
@@ -875,7 +940,11 @@ export default function App() {
                         <div>
                           <h4 className="text-[11px] font-bold text-slate-800">{mQuest.title}</h4>
                           <p className="text-[9px] text-slate-500 leading-tight mt-0.5">{mQuest.desc}</p>
-                          <div className="mt-1">
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 text-right space-y-1">
+
                             {getRiskBadge(mQuest.risk)}
                           </div>
                         </div>
@@ -948,7 +1017,11 @@ export default function App() {
                           <div>
                             <h4 className="text-[11px] font-bold text-slate-800">{quest.title}</h4>
                             <p className="text-[9.5px] text-slate-500 leading-tight mt-0.5">{quest.desc}</p>
-                            <div className="mt-1">
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 text-right space-y-1">
+
                               {getRiskBadge(quest.risk)}
                             </div>
                           </div>
@@ -988,7 +1061,11 @@ export default function App() {
                           <div>
                             <h4 className="text-[11px] font-bold text-slate-800">{quest.title}</h4>
                             <p className="text-[9.5px] text-slate-500 leading-tight mt-0.5">{quest.desc}</p>
-                            <div className="mt-1">
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 text-right space-y-1">
+
                               {getRiskBadge(quest.risk)}
                             </div>
                           </div>
@@ -1064,9 +1141,6 @@ export default function App() {
                           <div>
                             <h4 className="text-[11px] font-bold text-slate-800">{quest.title}</h4>
                             <p className="text-[9.5px] text-slate-500 mt-0.5">{quest.desc}</p>
-                            <div className="mt-1">
-                              {getRiskBadge(quest.risk)}
-                            </div>
                           </div>
                         </div>
 
