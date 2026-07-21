@@ -129,21 +129,21 @@ export default function App() {
 
   // 15+ Board-friendly shapes (1x1, 1x2, 1x3, small corners, small T)
   const shapesDatabase = [
-    { cells: [[1]] }, // Single 1x1 Dot (Super helper)
-    { cells: [[1]] }, // Double weight for 1x1
-    { cells: [[1, 1]] }, // 1x2 Horizontal
-    { cells: [[1], [1]] }, // 2x1 Vertical
-    { cells: [[1, 1, 1]] }, // 1x3 Horizontal
-    { cells: [[1], [1], [1]] }, // 3x1 Vertical
-    { cells: [[1, 1], [1, 1]] }, // 2x2 Square
-    { cells: [[1, 0], [1, 1]] }, // Small L bottom-left
-    { cells: [[0, 1], [1, 1]] }, // Small L bottom-right
-    { cells: [[1, 1], [1, 0]] }, // Small L top-left
-    { cells: [[1, 1], [0, 1]] }, // Small L top-right
-    { cells: [[1, 1, 1], [0, 1, 0]] }, // Small T
-    { cells: [[1, 0], [0, 1]] }, // Mini Diagonal
-    { cells: [[1, 1, 1, 1]] }, // 1x4 Line
-    { cells: [[1], [1], [1], [1]] } // 4x1 Line
+    { cells: [[1]] },
+    { cells: [[1]] },
+    { cells: [[1, 1]] },
+    { cells: [[1], [1]] },
+    { cells: [[1, 1, 1]] },
+    { cells: [[1], [1], [1]] },
+    { cells: [[1, 1], [1, 1]] },
+    { cells: [[1, 0], [1, 1]] },
+    { cells: [[0, 1], [1, 1]] },
+    { cells: [[1, 1], [1, 0]] },
+    { cells: [[1, 1], [0, 1]] },
+    { cells: [[1, 1, 1], [0, 1, 0]] },
+    { cells: [[1, 0], [0, 1]] },
+    { cells: [[1, 1, 1, 1]] },
+    { cells: [[1], [1], [1], [1]] }
   ];
 
   const generateRandomShapes = () => {
@@ -195,29 +195,6 @@ export default function App() {
 
   const socialQuests = [
     { id: 'sc_friend', title: 'ชวนเพื่อนทำเควสร่วมกันสำเร็จ 1 ข้อ', desc: 'จับคู่ทำเควสสิ่งแวดล้อมใดก็ได้สำเร็จร่วมกันในวันนี้', verify: 'ยืนยันความสำเร็จร่วมกันในกลุ่มปาร์ตี้', reward: 20, xp: 60, carbon: 1.5, icon: '👥' }
-  ];
-
-  const handleInitiateQuestVerification = (quest) => {
-
-    { id: 'm_walk', title: 'เดินสัญจรทางสีเขียว', desc: 'เดินเรียนผ่านเส้นทางสวนป่าจามจุรี หรือทางเท้าบังแดด', verify: 'GPS + เช็คความเร็วเฉลี่ย', risk: 'ง่าย', riskDesc: 'ตรวจจับพิกัดก้าวเดินและความเร็ว', reward: 15, xp: 35, carbon: 0.8, icon: '🚶‍♂️' },
-    { id: 'm_bike', title: 'ปั่นจักรยาน CU Bike', desc: 'ปั่นจักรยานสาธารณะแชร์ริ่งเพื่อเชื่อมต่อระหว่างตึกเรียน', verify: 'GPS + เช็คความเร็วเฉลี่ย', risk: 'ง่าย', riskDesc: 'คำนวณความเร็วการปั่นสัญจร', reward: 15, xp: 35, carbon: 1.1, icon: '🚲' }
-  ];
-
-  const zeroWasteQuests = [
-    { id: 'zw_sort', title: 'คัดแยกขยะประจำคณะ', desc: 'แยกขยะทั่วไป ขยะรีไซเคิล และเศษอาหาร ณ จุดแยกขยะ', verify: 'ถ่ายรูป + สแกน QR (วันละครั้ง)', risk: 'ง่าย', riskDesc: 'ป้องกันถ่ายซ้ำด้วย AI & Timestamp', reward: 10, xp: 25, carbon: 0.5, icon: '🗑️' },
-    { id: 'zw_bottle', title: 'คัดแยกขวด PET / กระป๋อง', desc: 'บดขวดพลาสติก PET หรือกระป๋องก่อนหยอดใส่ตู้รีไซเคิล', verify: 'ถ่ายรูป + สแกน QR (วันละครั้ง)', risk: 'ง่าย', riskDesc: 'ตรวจจับรูปภาพขวดบดร่วมกับบาร์โค้ด', reward: 10, xp: 25, carbon: 0.7, icon: '🥫' },
-    { id: 'zw_recycle', title: 'ส่งขยะแห้งเข้ากระบวนการรีไซเคิล', desc: 'รวบรวมกล่องลัง กระดาษ หรือพลาสติกยืดส่งจุดรับรีไซเคิล', verify: 'ถ่ายรูป + สแกน QR (วันละครั้ง)', risk: 'ง่าย', riskDesc: 'ตรวจพิกัดและรูปถ่ายจุดรีไซเคิล', reward: 10, xp: 25, carbon: 0.8, icon: '♻️' },
-    { id: 'zw_bento', title: 'กล่องข้าว / ภาชนะหมุนเวียน', desc: 'ใช้กล่องข้าวและช้อนส้อมพกพาในโรงอาหาร สแกน QR ผ่านร้านค้า', verify: 'ถ่ายรูป + สแกน QR ผ่านร้านค้า', risk: 'ยาก', riskDesc: 'พนักงานร้านค้าเป็นคนยื่น QR ยืนยันเอง', reward: 20, xp: 45, carbon: 1.2, icon: '🍱' },
-    { id: 'zw_water', title: 'เติมน้ำดื่ม (ห้ามใช้ขวดพลาสติก)', desc: 'นำกระบอกน้ำส่วนตัวมาเติมน้ำดื่ม ณ จุดบริการตู้เติมน้ำ', verify: 'ถ่ายรูป + สแกน QR ที่จุดเติมน้ำ', risk: 'ง่าย', riskDesc: 'ตรวจจับรูปถ่ายกระบอกน้ำพกพา', reward: 10, xp: 25, carbon: 0.4, icon: '💧' }
-  ];
-
-  const energyQuests = [
-    { id: 'be_power', title: 'ปิด/เปิดไฟฟ้าในห้องเรียน (On/Off)', desc: 'ปิดสวิตช์ไฟและแอร์เมื่อเลิกใช้งาน ระบบเทียบข้อมูล CUBEMS', verify: 'ข้อมูล Real-time จาก CUBEMS', risk: 'ยาก', riskDesc: 'ตรวจข้อมูลจริงจากมิเตอร์ไฟฟ้าประจำตึก', reward: 20, xp: 50, carbon: 2.0, icon: '🔌' },
-    { id: 'be_stairs', title: 'เดินขึ้นบันไดแทนการใช้ลิฟต์', desc: 'เดินขึ้นลงบันไดตึกเรียนตั้งแต่ 3 ชั้นขึ้นไป สแกน QR ประจำชั้น', verify: 'สแกน QR Code ยืนยันพิกัดทุกชั้น', risk: 'ยาก', riskDesc: 'ต้องสแกนจุดจริงครบทุกชั้น ปลอมแปลงยาก', reward: 15, xp: 35, carbon: 0.5, icon: '🪜' }
-  ];
-
-  const socialQuests = [
-    { id: 'sc_friend', title: 'ชวนเพื่อนทำเควสร่วมกันสำเร็จ 1 ข้อ', desc: 'จับคู่ทำเควสสิ่งแวดล้อมใดก็ได้สำเร็จร่วมกันในวันนี้', verify: 'ยืนยันความสำเร็จร่วมกันในกลุ่มปาร์ตี้', risk: 'ปานกลาง', riskDesc: 'แบ่งรางวัล 20 Eco-Coins ให้ทุกคนในกลุ่ม', reward: 20, xp: 60, carbon: 1.5, icon: '👥' }
   ];
 
   const handleInitiateQuestVerification = (quest) => {
@@ -302,7 +279,7 @@ export default function App() {
     triggerToast(`🎁 แลกสำเร็จ! บันทึกสิทธิ์ลงกระเป๋าของคุณแล้ว`);
   };
 
-  const FLOATING_Y_OFFSET = -70; // Float piece above finger so player can see board
+  const FLOATING_Y_OFFSET = -70;
 
   const handlePointerDown = (e, index) => {
     playSynthSound('select');
@@ -322,7 +299,6 @@ export default function App() {
     if (!gridEl) return;
 
     const gridRect = gridEl.getBoundingClientRect();
-    // Calculate targeted cell taking floating Y offset into account
     const targetX = e.clientX;
     const targetY = e.clientY + FLOATING_Y_OFFSET;
 
@@ -540,28 +516,6 @@ export default function App() {
     }
   };
 
-  const getRiskBadge = (risk) => {
-    if (risk === 'ยาก') {
-      return (
-        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
-          <ShieldCheck className="w-3 h-3 text-emerald-600" /> โกงยาก (ความน่าเชื่อถือสูง)
-        </span>
-      );
-    } else if (risk === 'ปานกลาง') {
-      return (
-        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
-          <ShieldAlert className="w-3 h-3 text-amber-600" /> โกงปานกลาง (ต้องสแกน QR)
-        </span>
-      );
-    } else {
-      return (
-        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200 flex items-center gap-1">
-          <Info className="w-3 h-3 text-orange-600" /> โกงง่าย (ตรวจด้วย AI &amp; Timestamp)
-        </span>
-      );
-    }
-  };
-
   return (
     <div 
       className="flex justify-center items-center min-h-screen bg-slate-950 font-sans p-2 sm:p-6 antialiased text-slate-800 select-none overflow-hidden" 
@@ -569,7 +523,7 @@ export default function App() {
       onPointerUp={handlePointerUp}
     >
       
-      {/* MOBILE DEVICE CONTAINER (CENTERED ONLY, NO SIDE TEXT) */}
+      {/* MOBILE DEVICE CONTAINER */}
       <div className="relative w-full max-w-[390px] h-[780px] bg-white rounded-[44px] shadow-2xl border-[10px] border-slate-900 overflow-hidden flex flex-col shrink-0">
         
         {/* Hardware Notch */}
@@ -608,7 +562,7 @@ export default function App() {
           </div>
         )}
 
-        {/* VERIFICATION MODAL */}
+        {}
         {verifyingQuest && (
           <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
             <div className="bg-slate-900 text-white rounded-3xl p-5 w-full max-w-[320px] space-y-4 border border-slate-800">
@@ -673,57 +627,6 @@ export default function App() {
               </div>
 
               {verificationStep < 3 ? (
-
-                  {getRiskBadge(verifyingQuest.risk)}
-                </div>
-              </div>
-
-              <div className="space-y-2 bg-black/40 p-3 rounded-2xl text-[10.5px]">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-300">
-                    1. {verifyingQuest.verify.split('+')[0] || 'ตรวจสอบตำแหน่ง'}
-                  </span>
-                  {verificationStep >= 1 ? (
-                    <span className="text-emerald-400 font-bold">✓ ตรวจพบ</span>
-                  ) : (
-                    <span className="text-slate-500 animate-pulse">กำลังสแกน...</span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-300">
-                    2. {verifyingQuest.verify.split('+')[1] || 'สแกน QR / ยืนยัน'}
-                  </span>
-                  {aiAnalyzing ? (
-                    <span className="text-amber-400 animate-pulse font-bold">กำลังสแกน...</span>
-                  ) : photoCaptured || qrScanned ? (
-                    <span className="text-emerald-400 font-bold">✓ ผ่านด่าน</span>
-                  ) : verificationStep >= 1 ? (
-                    <span className="text-pink-400 font-bold animate-pulse">📸 รอสแกน/ถ่ายรูป</span>
-                  ) : (
-                    <span className="text-slate-600">รอดำเนินการ</span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-300">
-                    3. บันทึกผลลงฐานข้อมูล
-                  </span>
-                  {verificationStep >= 3 ? (
-                    <span className="text-emerald-400 font-bold">✓ สำเร็จแล้ว</span>
-                  ) : verificationStep >= 2 ? (
-                    <span className="text-emerald-400 animate-pulse font-semibold">กำลังซิงก์...</span>
-                  ) : (
-                    <span className="text-slate-600">รอดำเนินการ</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-slate-800/80 p-2 rounded-xl text-[9.5px] text-slate-300 leading-tight">
-                <strong>💡 กลไกป้องกันการโกง:</strong> {verifyingQuest.riskDesc}
-              </div>
-
-              {verificationStep < 3 ? (
                 <button 
                   onClick={handleNextVerificationStep}
                   className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
@@ -752,7 +655,7 @@ export default function App() {
         {/* SCROLLABLE CONTENT */}
         <div className="flex-1 overflow-y-auto bg-slate-50 relative pb-16">
           
-          {/* TAB 1: HOME PAGE */}
+          {}
           {activeTab === 'home' && (
             <div className="p-4 space-y-4 animate-fadeIn">
               
@@ -886,7 +789,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 2: GREEN MOBILITY */}
+          {}
           {activeTab === 'route' && (
             <div className="p-4 space-y-4 animate-fadeIn">
               
@@ -944,13 +847,6 @@ export default function App() {
                       </div>
 
                       <div className="shrink-0 text-right space-y-1">
-
-                            {getRiskBadge(mQuest.risk)}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="shrink-0 text-right space-y-1">
                         <span className="text-[10.5px] font-black text-emerald-600 block">+{mQuest.reward} 🪙</span>
                         {isDone ? (
                           <span className="text-[9px] bg-slate-100 text-slate-500 font-bold px-2 py-1 rounded-lg block">
@@ -973,7 +869,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 3: QUESTS BOARD */}
+          {}
           {activeTab === 'quests' && (
             <div className="p-4 space-y-4 animate-fadeIn">
               
@@ -1021,13 +917,6 @@ export default function App() {
                         </div>
 
                         <div className="shrink-0 text-right space-y-1">
-
-                              {getRiskBadge(quest.risk)}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="shrink-0 text-right space-y-1">
                           <span className="text-[10.5px] font-black text-emerald-600 block">+{quest.reward} 🪙</span>
                           {isDone ? (
                             <span className="text-[9px] bg-slate-100 text-slate-500 font-bold px-2 py-1 rounded-lg block">
@@ -1061,13 +950,6 @@ export default function App() {
                           <div>
                             <h4 className="text-[11px] font-bold text-slate-800">{quest.title}</h4>
                             <p className="text-[9.5px] text-slate-500 leading-tight mt-0.5">{quest.desc}</p>
-                          </div>
-                        </div>
-
-                        <div className="shrink-0 text-right space-y-1">
-
-                              {getRiskBadge(quest.risk)}
-                            </div>
                           </div>
                         </div>
 
@@ -1168,7 +1050,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 4: WALLET */}
+          {}
           {activeTab === 'wallet' && (
             <div className="p-4 space-y-4 animate-fadeIn">
               
@@ -1250,7 +1132,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 5: GAME BLOCK BLAST */}
+          {}
           {activeTab === 'game' && (
             <div className="p-4 space-y-4 animate-fadeIn">
               
@@ -1425,7 +1307,7 @@ export default function App() {
 
         </div>
 
-        {/* BOTTOM NAVIGATION BAR */}
+        {}
         <div className="absolute bottom-0 left-0 right-0 h-[64px] bg-white border-t border-slate-200/80 px-4 py-2 flex justify-around items-center rounded-t-2xl shadow-lg z-20 select-none shrink-0">
           
           <button 
