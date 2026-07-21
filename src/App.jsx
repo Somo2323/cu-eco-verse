@@ -17,7 +17,14 @@ import {
   Lock,
   Unlock,
   RotateCcw,
-  Activity
+  Activity,
+  QrCode,
+  ShieldAlert,
+  ShieldCheck,
+  UserPlus,
+  Droplet,
+  Zap,
+  Coffee
 } from 'lucide-react';
 
 const playSynthSound = (type) => {
@@ -72,29 +79,36 @@ const playSynthSound = (type) => {
       osc.stop(ctx.currentTime + 0.5);
     }
   } catch (e) {
-    console.log("Audio contexts blocked or unsupported on device.");
+    console.log("Audio API blocked or unsupported on device.");
   }
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('home');
-  const [activeQuestTab, setActiveQuestTab] = useState('daily');
+  const [activeTab, setActiveTab] = useState('home'); // home, route, quests, wallet, game
+  const [activeQuestCategory, setActiveQuestCategory] = useState('zero_waste'); // zero_waste, energy, social
   
-  const [coins, setCoins] = useState(1350);
-  const [carbonSaved, setCarbonSaved] = useState(48.2);
+  const [coins, setCoins] = useState(1280);
+  const [carbonSaved, setCarbonSaved] = useState(38.4);
   const [streak, setStreak] = useState(5);
-  const [xp, setXp] = useState(160);
+  const [xp, setXp] = useState(180);
   const [level, setLevel] = useState(4);
-  const [completedQuests, setCompletedQuests] = useState([]); 
+  const [completedQuests, setCompletedQuests] = useState([]); // List of completed quest IDs today
 
+  // Quest Verification Modal State
   const [verifyingQuest, setVerifyingQuest] = useState(null);
   const [verificationStep, setVerificationStep] = useState(0);
   const [photoCaptured, setPhotoCaptured] = useState(false);
+  const [qrScanned, setQrScanned] = useState(false);
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
-  
+
+  // Social / Party State
+  const [partyMembers, setPartyMembers] = useState(['คุณ (หัวหน้าทีม)', 'นพดล (วิศวฯ)', 'สุดารัตน์ (อักษรฯ)']);
+  const [friendCodeInput, setFriendCodeInput] = useState('');
+
+  // Real-time Event Alerts
   const [notifications, setNotifications] = useState([
-    { id: 1, type: 'alert', text: '🚨 ภูตคาร์บอนก่อกวน! มีการเปิดเครื่องปรับอากาศค้างไว้ที่ห้องเรียน ENG3-402' },
-    { id: 2, type: 'rare', text: '🌟 เควส Rare คณะวิทยาศาสตร์: คลีนตู้แช่แข็งเคมีชีวภาพสะสม 2 เท่า' }
+    { id: 1, type: 'alert', text: '🚨 ตรวจพบการเปิดแอร์ค้างที่ตึก ENG3-402! ทำเควสประหยัดพลังงาน CUBEMS ด่วน' },
+    { id: 2, type: 'rare', text: '🌟 เควส Co-Op: ชวนเพื่อนทำเควสสำเร็จวันนี้ รับ +20 Eco-Coins แชร์ทั้งปาร์ตี้!' }
   ]);
 
   const [startPoint, setStartPoint] = useState('eng3');
@@ -103,8 +117,8 @@ export default function App() {
 
   const [transactions, setTransactions] = useState([
     { id: 1, title: 'แลกแก้วน้ำพับได้ CU Green', change: -1200, type: 'spend', date: 'วันนี้' },
-    { id: 2, title: 'เควสใช้กล่องข้าวส่วนตัวสำเร็จ', change: 40, type: 'earn', date: 'วันนี้' },
-    { id: 3, title: 'เควสแยกขวดรีไซเคิลสำเร็จ', change: 35, type: 'earn', date: 'เมื่อวาน' },
+    { id: 2, title: 'เควสกล่องข้าวหมุนเวียน (Bento)', change: 20, type: 'earn', date: 'วันนี้' },
+    { id: 3, title: 'เควสคัดแยกขวด PET', change: 10, type: 'earn', date: 'เมื่อวาน' },
   ]);
 
   const [grid, setGrid] = useState(Array(6).fill(null).map(() => Array(6).fill(0)));
@@ -153,44 +167,170 @@ export default function App() {
     if (newXp >= xpNeededForNextLevel) {
       newXp = newXp - xpNeededForNextLevel;
       newLevel = level + 1;
-      triggerToast(`🎉 เลเวลอัป! เลื่อนเป็นอัศวินคาร์บอนระดับ ${newLevel}!`, 'levelUp');
+      triggerToast(`🎉 เลเวลอัป! เลื่อนระดับเป็น อัศวินคาร์บอน Level ${newLevel}!`, 'levelUp');
     }
     setXp(newXp);
     setLevel(newLevel);
   };
 
-  const transitData = [
-    { id: 't_walk', title: 'เดินเท้าเรียนทางสีเขียว', desc: 'เดินสัญจรผ่านเส้นทางสวนป่าจามจุรี หรือทางเท้ามีหลังคาบังแดดรอบจุฬาฯ', reward: 30, xp: 40, carbon: 0.8, icon: '🚶‍♂️' },
-    { id: 't_bike', title: 'ปั่นจักรยาน CU Bike', desc: 'ปั่นจักรยานสาธารณะแชร์ริ่งเพื่อเชื่อมต่อระหว่างตึกเรียนคณะต่าง ๆ', reward: 40, xp: 50, carbon: 1.1, icon: '🚲' },
-    { id: 't_bus', title: 'นั่งรถไฟฟ้า EV Pop Bus', desc: 'โดยสารรถป๊อปไฟฟ้าของมหาวิทยาลัยแทนรถส่วนตัวเพื่อลดคาร์บอนส่วนรวม', reward: 25, xp: 30, carbon: 0.6, icon: '🚌' }
+  // 1. Mobility Quests (Green Mobility)
+  const mobilityData = [
+    {
+      id: 'm_bus',
+      title: 'นั่งรถไฟฟ้า EV Pop Bus',
+      desc: 'โดยสารรถป๊อปไฟฟ้าของมหาวิทยาลัยแทนรถส่วนตัว สแกน QR บนรถ',
+      verify: 'GPS + สแกน QR บนรถ',
+      risk: 'ปานกลาง',
+      riskDesc: 'GPS Spoof ได้ แต่ต้องมี QR บนรถยืนยัน',
+      reward: 10,
+      xp: 25,
+      carbon: 0.6,
+      icon: '🚌'
+    },
+    {
+      id: 'm_walk',
+      title: 'เดินสัญจรทางสีเขียว',
+      desc: 'เดินเรียนผ่านเส้นทางสวนป่าจามจุรี หรือทางเท้าบังแดดรอบจุฬาฯ',
+      verify: 'GPS + เช็คความเร็วเฉลี่ย',
+      risk: 'ง่าย',
+      riskDesc: 'ตรวจจับพิกัดก้าวเดินและคำนวณความเร็ว',
+      reward: 15,
+      xp: 35,
+      carbon: 0.8,
+      icon: '🚶‍♂️'
+    },
+    {
+      id: 'm_bike',
+      title: 'ปั่นจักรยาน CU Bike',
+      desc: 'ปั่นจักรยานสาธารณะแชร์ริ่งเพื่อเชื่อมต่อระหว่างอาคารเรียน',
+      verify: 'GPS + เช็คความเร็วเฉลี่ย',
+      risk: 'ง่าย',
+      riskDesc: 'คำนวณความเร็วการปั่นสัญจร',
+      reward: 15,
+      xp: 35,
+      carbon: 1.1,
+      icon: '🚲'
+    }
   ];
 
-  const questsData = {
-    daily: [
-      { id: 'q_bento', title: 'My Bento Pride', desc: 'ใช้กล่องข้าวพกพาและช้อนส้อมของตัวเองในโรงอาหาร แทนกล่องพลาสติกใช้แล้วทิ้ง', reward: 40, xp: 50, carbon: 0.8, rarity: 'Common', icon: '🍱', type: 'bento' },
-      { id: 'q_stairs', title: 'Stair Climber', desc: 'เดินใช้บันไดขึ้นลงตึกเรียนและอาคารหลักแทนการใช้ลิฟต์อย่างน้อย 3 ชั้นขึ้นไป', reward: 25, xp: 35, carbon: 0.3, rarity: 'Common', icon: '🪜', type: 'stairs' },
-      { id: 'q_sort', title: 'Sorting Champion', desc: 'คัดแยกเศษอาหาร ขยะรีไซเคิล และขยะทั่วไปอย่างถูกต้องที่สถานีแยกขยะประจำคณะ', reward: 35, xp: 45, carbon: 0.6, rarity: 'Rare', icon: '🗑️', type: 'waste' },
-    ],
-    classroom: [
-      { id: 'q_bottle', title: 'Can & Bottle Crusher', desc: 'บดขวดพลาสติก PET และกระป๋องอะลูมิเนียมก่อนหยอดใส่ตู้แยกเพื่อเพิ่มประสิทธิภาพรีไซเคิล', reward: 50, xp: 60, carbon: 1.2, rarity: 'Rare', icon: '🥫', type: 'recycling' },
-      { id: 'q_proj', title: 'Projector Slayer', desc: 'ปิดสวิตช์โปรเจกเตอร์และระบบเสียงในห้องเลกเชอร์ทันทีหลังเลิกเรียนเพื่อประหยัดพลังงาน', reward: 40, xp: 50, carbon: 1.5, rarity: 'Epic', icon: '🔌', type: 'electronics' },
-      { id: 'q_ac', title: 'Thermostat Guard', desc: 'ปรับอุณหภูมิแอร์ให้อยู่ระดับ 26°C ร่วมกับการเปิดพัดลมเพื่อช่วยลดพีคพลังงาน', reward: 30, xp: 40, carbon: 1.0, rarity: 'Common', icon: '❄️', type: 'electronics' },
-    ],
-    lab: [
-      { id: 'q_phantom', title: 'Phantom Load Patrol', desc: 'ตรวจกวาดล้างและปิดสแตนด์บายปลั๊กเครื่องมือห้องแล็บวิทยาศาสตร์ก่อนสุดสัปดาห์', reward: 60, xp: 80, carbon: 2.5, rarity: 'Epic', icon: '🕵️‍♂️', type: 'electronics' },
-      { id: 'q_freezer', title: 'Freezer Fortress', desc: 'ตรวจสอบขอบยางตู้แช่แข็งเคมี -80°C ให้ปิดสนิทและไม่เปิดแช่ทิ้งไว้เกินจำเป็น', reward: 45, xp: 50, carbon: 1.8, rarity: 'Rare', icon: '🥶', type: 'electronics' },
-    ],
-    weekly: [
-      { id: 'q_streak', title: '5-Day Eco Streak', desc: 'เดินทางด้วย CU Bike หรือเดินเรียนติดต่อกันครบ 5 วันในสัปดาห์การเรียนนี้', reward: 150, xp: 200, carbon: 5.5, rarity: 'Legendary', icon: '⚡', type: 'transit' },
-    ],
-  };
+  // 2. Zero Waste Quests
+  const zeroWasteQuests = [
+    {
+      id: 'zw_sort',
+      title: 'คัดแยกขยะประจำคณะ',
+      desc: 'แยกขยะทั่วไป ขยะรีไซเคิล และเศษอาหาร ณ สถานีแยกขยะประจำตึก',
+      verify: 'ถ่ายรูป + สแกน QR (ทำได้วันละครั้ง)',
+      risk: 'ง่าย',
+      riskDesc: 'ป้องกันถ่ายซ้ำด้วย AI & Timestamp',
+      reward: 10,
+      xp: 25,
+      carbon: 0.5,
+      icon: '🗑️'
+    },
+    {
+      id: 'zw_bottle',
+      title: 'คัดแยกขวด PET / กระป๋อง',
+      desc: 'บดขวดพลาสติก PET หรือกระป๋องอะลูมิเนียมก่อนหยอดใส่ตู้รีไซเคิล',
+      verify: 'ถ่ายรูป + สแกน QR (ทำได้วันละครั้ง)',
+      risk: 'ง่าย',
+      riskDesc: 'ตรวจจับรูปภาพขวดบดร่วมกับบาร์โค้ด',
+      reward: 10,
+      xp: 25,
+      carbon: 0.7,
+      icon: '🥫'
+    },
+    {
+      id: 'zw_recycle',
+      title: 'ส่งขยะแห้งเข้ากระบวนการรีไซเคิล',
+      desc: 'รวบรวมกล่องลัง กระดาษ หรือพลาสติกยืดส่ง ณ จุดรับรีไซเคิลจุฬาฯ',
+      verify: 'ถ่ายรูป + สแกน QR (ทำได้วันละครั้ง)',
+      risk: 'ง่าย',
+      riskDesc: 'ตรวจพิกัดและรูปถ่ายจุดรีไซเคิล',
+      reward: 10,
+      xp: 25,
+      carbon: 0.8,
+      icon: '♻️'
+    },
+    {
+      id: 'zw_bento',
+      title: 'กล่องข้าว / ภาชนะหมุนเวียน',
+      desc: 'ใช้กล่องข้าวและช้อนส้อมพกพาในโรงอาหาร สแกน QR ผ่านร้านค้า',
+      verify: 'ถ่ายรูป + สแกน QR ผ่านร้านค้า (คล้าย LINE Shop)',
+      risk: 'ยาก',
+      riskDesc: 'พนักงานร้านค้าเป็นคนยื่น QR ยืนยันเอง',
+      reward: 20,
+      xp: 45,
+      carbon: 1.2,
+      icon: '🍱'
+    },
+    {
+      id: 'zw_water',
+      title: 'เติมน้ำดื่ม (ห้ามใช้ขวดพลาสติก)',
+      desc: 'นำกระบอกน้ำส่วนตัวมาเติมน้ำดื่ม ณ จุดบริการตู้เติมน้ำของอาคาร',
+      verify: 'ถ่ายรูป + สแกน QR ที่จุดเติมน้ำ (ทำได้วันละครั้ง)',
+      risk: 'ง่าย',
+      riskDesc: 'ตรวจจับรูปถ่ายกระบอกน้ำพกพา',
+      reward: 10,
+      xp: 25,
+      carbon: 0.4,
+      icon: '💧'
+    }
+  ];
+
+  // 3. Building Energy Quests
+  const energyQuests = [
+    {
+      id: 'be_power',
+      title: 'ปิด/เปิดไฟฟ้าในห้องเรียน (On/Off)',
+      desc: 'ปิดสวิตช์ไฟและแอร์เมื่อเลิกใช้งาน ระบบเทียบข้อมูลมิเตอร์ CUBEMS',
+      verify: 'ข้อมูล Real-time จาก CUBEMS เทียบ Baseline',
+      risk: 'ยาก',
+      riskDesc: 'ตรวจข้อมูลจริงจากมิเตอร์ไฟฟ้าประจำตึก',
+      reward: 20,
+      xp: 50,
+      carbon: 2.0,
+      icon: '🔌'
+    },
+    {
+      id: 'be_stairs',
+      title: 'เดินขึ้นบันไดแทนการใช้ลิฟต์',
+      desc: 'เดินขึ้นลงบันไดตึกเรียนตั้งแต่ 3 ชั้นขึ้นไป สแกน QR ประจำชั้น',
+      verify: 'สแกน QR Code ยืนยันพิกัดทุกชั้น',
+      risk: 'ยาก',
+      riskDesc: 'ต้องสแกนจุดจริงครบทุกชั้น ปลอมแปลงยาก',
+      reward: 15,
+      xp: 35,
+      carbon: 0.5,
+      icon: '🪜'
+    }
+  ];
+
+  // 4. Social / Co-op Quests
+  const socialQuests = [
+    {
+      id: 'sc_friend',
+      title: 'ชวนเพื่อนทำเควสร่วมกันสำเร็จ 1 ข้อ',
+      desc: 'จับคู่หรือสร้างปาร์ตี้ทำเควสสิ่งแวดล้อมใดก็ได้สำเร็จร่วมกันในวันนี้',
+      verify: 'ยืนยันความสำเร็จร่วมกันในกลุ่มปาร์ตี้',
+      risk: 'ปานกลาง',
+      riskDesc: 'แบ่งรางวัล 20 Eco-Coins ให้ทุกคนในกลุ่ม',
+      reward: 20,
+      xp: 60,
+      carbon: 1.5,
+      icon: '👥'
+    }
+  ];
 
   const handleInitiateQuestVerification = (quest) => {
-    if (completedQuests.includes(quest.id)) return;
+    if (completedQuests.includes(quest.id)) {
+      triggerToast("🔒 เควสนี้ทำสำเร็จแล้วในวันนี้! (จำกัดวันละ 1 รอบ)", "info");
+      return;
+    }
     playSynthSound('select');
     setVerifyingQuest(quest);
     setVerificationStep(0);
     setPhotoCaptured(false);
+    setQrScanned(false);
     setAiAnalyzing(false);
   };
 
@@ -199,17 +339,14 @@ export default function App() {
     if (verificationStep === 0) {
       setVerificationStep(1);
     } else if (verificationStep === 1) {
-      if (verifyingQuest.type === 'waste' || verifyingQuest.type === 'recycling' || verifyingQuest.type === 'bento' || verifyingQuest.type === 'electronics') {
+      setAiAnalyzing(true);
+      setTimeout(() => {
+        setAiAnalyzing(false);
         setPhotoCaptured(true);
-        setAiAnalyzing(true);
-        setTimeout(() => {
-          setAiAnalyzing(false);
-          setVerificationStep(2);
-          playSynthSound('select');
-        }, 1500);
-      } else {
+        setQrScanned(true);
         setVerificationStep(2);
-      }
+        playSynthSound('select');
+      }, 1200);
     } else if (verificationStep === 2) {
       setVerificationStep(3);
       executeQuestCompletion(verifyingQuest);
@@ -225,7 +362,7 @@ export default function App() {
 
     const newTx = {
       id: Date.now(),
-      title: `ทำเควส ${quest.title} สำเร็จ`,
+      title: `สำเร็จเควส ${quest.title}`,
       change: quest.reward,
       type: 'earn',
       date: 'วันนี้'
@@ -234,16 +371,23 @@ export default function App() {
     playSynthSound('perfect');
   };
 
+  const handleAddPartyMember = () => {
+    if (!friendCodeInput.trim()) return;
+    setPartyMembers([...partyMembers, `เพื่อนไอดี: ${friendCodeInput.trim()}`]);
+    setFriendCodeInput('');
+    triggerToast("✨ เข้าร่วมปาร์ตี้เรียบร้อย! พร้อมรับโบนัส Co-Op ร่วมกัน");
+  };
+
   const rewardsList = [
-    { id: 'reward_cup', title: 'คูปองเครื่องดื่มฟรี CU Cafe', cost: 1800, desc: 'แลกเครื่องดื่มออร์แกนิกฟรี 1 แก้ว ณ โรงอาหารกลางเพื่อช่วยสนับสนุนการใช้แก้วส่วนตัว', icon: '☕' },
-    { id: 'reward_ev', title: 'EV Motor Pass ฟรีช่วงพีค', cost: 950, desc: 'รับสิทธิ์ใช้บริการชาร์จมอเตอร์ไซค์ไฟฟ้าและสแกน CU Bike พรีเมียม ฟรี 5 ครั้ง', icon: '🔌' },
-    { id: 'reward_gened', title: 'Gen-Ed Course Fast Pass', cost: 6500, desc: 'สิทธิ์ลงทะเบียนล่วงหน้าวิชาหมวดศึกษาทั่วไปยอดนิยมวิชาสิ่งแวดล้อมที่จำกัดที่นั่ง', icon: '🎓' },
-    { id: 'reward_ticket', title: 'ตั๋วชมภาพยนตร์เครือ SF / Major Eco-Seat', cost: 5800, desc: 'บัตรชมภาพยนตร์ฟรี 1 ใบ สนับสนุนโครงการปลูกป่าลดคาร์บอนของโรงภาพยนตร์', icon: '🎬' }
+    { id: 'reward_cup', title: 'คูปองเครื่องดื่มฟรี CU Cafe', cost: 1800, desc: 'เครื่องดื่มฟรี 1 แก้วเมื่อนำแก้วส่วนตัวมาใช้', icon: '☕' },
+    { id: 'reward_ev', title: 'EV Motor Pass ฟรีช่วงพีค', cost: 950, desc: 'รับสิทธิ์ใช้บริการชาร์จมอเตอร์ไซค์ไฟฟ้า ฟรี 5 ครั้ง', icon: '🔌' },
+    { id: 'reward_gened', title: 'Gen-Ed Course Fast Pass', cost: 6500, desc: 'สิทธิ์ลงทะเบียนวิชาหมวดศึกษาทั่วไปยอดนิยมล่วงหน้า', icon: '🎓' },
+    { id: 'reward_ticket', title: 'ตั๋วชมภาพยนตร์ Eco-Seat', cost: 5800, desc: 'ตั๋วภาพยนตร์ฟรี 1 ใบ สนับสนุนโครงการปลูกป่า', icon: '🎬' }
   ];
 
   const handleRedeem = (reward) => {
     if (coins < reward.cost) {
-      triggerToast("ยอดเหรียญสะสมไม่เพียงพอ ต้องเคลียร์เควสเพิ่มเติมก่อนแลกครับ!", "error");
+      triggerToast("ยอด Eco-Coins สะสมไม่เพียงพอ ต้องพิชิตเควสเพิ่มก่อนครับ!", "error");
       return;
     }
 
@@ -256,18 +400,14 @@ export default function App() {
       date: 'วันนี้'
     };
     setTransactions([newTx, ...transactions]);
-
-    triggerToast(`🎁 แลกสำเร็จ! บันทึกคิวอาร์โค้ดลงหน้ากระเป๋าของคุณแล้ว`, 'success');
+    triggerToast(`🎁 แลกสำเร็จ! บันทึกสิทธิ์ลงกระเป๋าของคุณเรียบร้อยแล้ว`);
   };
 
   const handlePointerDown = (e, index) => {
     playSynthSound('select');
     setDraggedShapeIdx(index);
     setSelectedShapeIndex(index);
-    setStartTouchPos({
-      x: e.clientX,
-      y: e.clientY
-    });
+    setStartTouchPos({ x: e.clientX, y: e.clientY });
     setDragPos({ x: 0, y: 0 });
   };
 
@@ -318,23 +458,21 @@ export default function App() {
     const shapeCols = selectedShape.cells[0].length;
 
     if (r + shapeRows > 6 || c + shapeCols > 6) {
-      triggerToast("อย่าวางบล็อกออกนอกพื้นที่กระดานครับ!", "error");
+      triggerToast("อย่าวางบล็อกออกนอกกระดานครับ!", "error");
       return;
     }
 
     let fits = true;
     for (let sR = 0; sR < shapeRows; sR++) {
       for (let sC = 0; sC < shapeCols; sC++) {
-        if (selectedShape.cells[sR][sC] === 1) {
-          if (grid[r + sR][c + sC] === 1) {
-            fits = false;
-          }
+        if (selectedShape.cells[sR][sC] === 1 && grid[r + sR][c + sC] === 1) {
+          fits = false;
         }
       }
     }
 
     if (!fits) {
-      triggerToast("จุดนี้มีพลังงานบล็อกอื่นบดบังอยู่แล้ว!", "error");
+      triggerToast("จุดนี้มีบล็อกอื่นบดบังอยู่แล้ว!", "error");
       return;
     }
 
@@ -396,7 +534,7 @@ export default function App() {
       playSynthSound('perfect');
       extraPerfectBonus = 1000;
       setActiveThemeIdx((prev) => (prev + 1) % themeList.length);
-      triggerToast("🌟 PERFECT WIPE! เคลียร์กระดานหมดจด! เปลี่ยนธีมบล็อกเรืองแสงใหม่!", "success");
+      triggerToast("🌟 PERFECT WIPE! เคลียร์กระดานหมดจด! สลับสีธีมบล็อกใหม่!", "success");
     }
 
     const blocksPlacedCount = selectedShape.cells.flat().filter(x => x === 1).length;
@@ -455,7 +593,7 @@ export default function App() {
     setAvailableShapes(generateRandomShapes());
     setSelectedShapeIndex(null);
     setIsGameOver(false);
-    triggerToast("กระดานรีเซ็ตแล้ว ลุยความสนุกสีเขียวกันต่อ!");
+    triggerToast("กระดานรีเซ็ตแล้ว ลุยสะสมคะแนนต่อได้เลย!");
   };
 
   const isEligibleToConvert = completedQuests.length >= 3;
@@ -463,12 +601,12 @@ export default function App() {
 
   const handleConvertScoreToCoins = () => {
     if (!isEligibleToConvert) {
-      triggerToast("🔒 ต้องพิชิตภารกิจใดก็ได้ให้ครบ 3 เควสก่อน จึงจะปลดล็อคการแลกคะแนนครับ!", "error");
+      triggerToast("🔒 ต้องพิชิตภารกิจใดก็ได้ให้ครบ 3 เควสก่อนวันนี้ จึงจะปลดล็อคการแลกคะแนน!", "error");
       return;
     }
 
     if (score < conversionRate) {
-      triggerToast(`ต้องการคะแนนสะสมอย่างน้อย ${conversionRate.toLocaleString()} แต้มเพื่อแลก 1 Eco-Coin!`, "info");
+      triggerToast(`ต้องการคะแนนอย่างน้อย ${conversionRate.toLocaleString()} แต้มเพื่อแลก 1 Eco-Coin!`, "info");
       return;
     }
 
@@ -480,13 +618,12 @@ export default function App() {
 
     const newTx = {
       id: Date.now(),
-      title: "แปลงแต้ม Block Blast เป็น Eco-Coins",
+      title: "แปลงคะแนน Block Blast เป็น Eco-Coins",
       change: earnedCoins,
-      type: "earn",
-      date: "วันนี้"
+      type: 'earn',
+      date: 'วันนี้'
     };
     setTransactions([newTx, ...transactions]);
-
     triggerToast(`🎉 แปลงคะแนนสำเร็จ! คุณได้รับ +${earnedCoins} 🪙 หมุนเวียนสู่กระเป๋า!`);
   };
 
@@ -501,38 +638,60 @@ export default function App() {
     }
   };
 
+  const getRiskBadge = (risk) => {
+    if (risk === 'ยาก') {
+      return (
+        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+          <ShieldCheck className="w-3 h-3 text-emerald-600" /> โกงยาก (ความน่าเชื่อถือสูง)
+        </span>
+      );
+    } else if (risk === 'ปานกลาง') {
+      return (
+        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
+          <ShieldAlert className="w-3 h-3 text-amber-600" /> โกงปานกลาง (ต้องสแกน QR)
+        </span>
+      );
+    } else {
+      return (
+        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200 flex items-center gap-1">
+          <Info className="w-3 h-3 text-orange-600" /> โกงง่าย (ตรวจด้วย AI &amp; Timestamp)
+        </span>
+      );
+    }
+  };
+
   return (
     <div className="flex flex-col lg:flex-row gap-8 justify-center items-center min-h-screen bg-slate-950 font-sans p-6 antialiased text-slate-800" onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
       
-      {/* LEFT COLUMN: Project branding and info */}
+      {/* LEFT COLUMN: Project Information Panel */}
       <div className="max-w-md text-white space-y-5 px-4">
         <div className="inline-flex items-center gap-2 bg-pink-500/10 border border-pink-500/20 text-pink-400 px-3 py-1.5 rounded-full text-xs font-semibold">
-          <Sparkles className="w-3.5 h-3.5 animate-pulse" /> เวอร์ชันอัปเดตระบบตรวจสอบ &amp; ความคุ้มค่ารางวัล
+          <Sparkles className="w-3.5 h-3.5 animate-pulse" /> อัปเดตตารางเควสระบบใหม่ล่าสุดตามข้อกำหนด
         </div>
         <h2 className="text-3xl font-black tracking-tight leading-tight bg-gradient-to-r from-pink-500 via-rose-400 to-emerald-400 bg-clip-text text-transparent">
           CU Eco-Verse 🌳
         </h2>
         <p className="text-sm font-medium text-slate-300 leading-relaxed">
-          เปลี่ยนพฤติกรรมอนุรักษ์สิ่งแวดล้อมให้เป็นกลไกเกมแสนสนุก โดยผสานฐานข้อมูลจริงผ่านระบบ CUBEMS พร้อมมินิเกมลากวางบล็อกที่มีฟิสิกส์การลากลื่นไหลยิ่งขึ้น!
+          แพลตฟอร์มการมีส่วนร่วมด้านสิ่งแวดล้อมจุฬาฯ ปรับปรุงโครงสร้างเควสตามด่านความเสี่ยงการโกง พร้อมระบบตรวจสอบและฟีเจอร์ปาร์ตี้ชวนเพื่อนร่วมภารกิจ!
         </p>
 
         <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-3 text-xs leading-relaxed">
           <h4 className="font-bold text-slate-200 flex items-center gap-1.5 text-rose-400">
-            📌 ฟังก์ชันเด่นในรุ่นนี้:
+            📌 สรุปเงื่อนไขระบบเควสใหม่:
           </h4>
           <ul className="space-y-2 text-slate-400 list-disc list-inside">
-            <li><span className="text-pink-400 font-semibold">ระบบตรวจสอบตามความเป็นจริง:</span> เควสมีด่านพิกัด GPS, การถ่ายภาพสแกน AI และขั้นตอนซิงก์ CUBEMS ต่างกันจริง</li>
-            <li><span className="text-pink-400 font-semibold">ต้านทานระบบเงินเฟ้อ:</span> ปรับเปลี่ยนค่าสิทธิประโยชน์แลกของรางวัลในสโมสรจุฬาฯ ให้เหมาะสมและสมดุล</li>
-            <li><span className="text-pink-400 font-semibold">เควสสิ่งแวดล้อม:</span> ทั้งเดินขึ้นบันได My Bento Pride และ คัดแยกขยะรีไซเคิลอย่างเข้มข้น</li>
-            <li><span className="text-pink-400 font-semibold">ลากวางบล็อกไร้แรงเสียดทาน:</span> สนุกและเพลิดเพลินกับการจัดวางบล็อกเรืองแสงที่เปลี่ยนโทนสีเมื่อเคลียร์กระดานได้ครบวงจร</li>
+            <li><span className="text-pink-400 font-semibold">จำกัดการทำวันละ 1 รอบ:</span> ทุกเควสสามารถสะสม Eco-Coins ได้วันละครั้งต่อประเภท</li>
+            <li><span className="text-emerald-400 font-semibold">เควสกล่องข้าวหมุนเวียน (20 Coins):</span> ตรวจสอบความเสี่ยงยาก โดยพนักงานร้านยื่น QR สแกนเอง</li>
+            <li><span className="text-indigo-400 font-semibold">เควส CUBEMS &amp; ขึ้นบันได (15-20 Coins):</span> ตรวจทวนจากมิเตอร์ไฟฟ้าจริง และการสแกน QR ทุกชั้น</li>
+            <li><span className="text-amber-400 font-semibold">ระบบปาร์ตี้ Co-Op (20 Coins):</span> ชวนเพื่อนสำเร็จเควสร่วมกัน รับรางวัลแชร์ทั้งทีม</li>
           </ul>
         </div>
       </div>
 
-      {/* RIGHT COLUMN: Mobile simulator container */}
+      {/* RIGHT COLUMN: Mobile Device Simulator */}
       <div className="relative w-full max-w-[390px] h-[780px] bg-white rounded-[44px] shadow-2xl border-[10px] border-slate-900 overflow-hidden flex flex-col shrink-0">
         
-        {/* Notch hardware simulator */}
+        {/* Hardware Notch */}
         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-slate-900 rounded-b-2xl z-40 flex items-center justify-center">
           <div className="w-12 h-1 bg-slate-800 rounded-full mb-1"></div>
         </div>
@@ -560,7 +719,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* Dynamic Toast Render inside Mobile Frame */}
+        {/* Dynamic Toast Popup */}
         {toast && (
           <div className="absolute top-12 left-4 right-4 bg-slate-900 text-white text-[10.5px] p-2.5 rounded-xl shadow-lg z-50 flex items-center gap-2 border border-slate-800 animate-bounce">
             <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -568,7 +727,7 @@ export default function App() {
           </div>
         )}
 
-        {/* INTERACTIVE STEP-BY-STEP VERIFICATION MODAL */}
+        {/* INTERACTIVE VERIFICATION MODAL BASED ON SPECIFICATION SHEET */}
         {verifyingQuest && (
           <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
             <div className="bg-slate-900 text-white rounded-3xl p-5 w-full max-w-[320px] space-y-4 border border-slate-800">
@@ -582,95 +741,83 @@ export default function App() {
               </div>
 
               <div>
-                <h4 className="text-sm font-black text-white">{verifyingQuest.title}</h4>
-                <p className="text-[11px] text-slate-400 mt-1 leading-normal">{verifyingQuest.desc}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{verifyingQuest.icon}</span>
+                  <div>
+                    <h4 className="text-sm font-black text-white">{verifyingQuest.title}</h4>
+                    <p className="text-[10px] text-pink-400 font-bold">รับ +{verifyingQuest.reward} Eco-Coins 🪙</p>
+                  </div>
+                </div>
+                <div className="mt-2">
+                  {getRiskBadge(verifyingQuest.risk)}
+                </div>
               </div>
 
-              {/* Unique Progress Steps based on Quest Category */}
-              <div className="space-y-2.5 bg-black/40 p-3 rounded-2xl text-[11px]">
+              {/* Dynamic Steps according to sheet */}
+              <div className="space-y-2 bg-black/40 p-3 rounded-2xl text-[10.5px]">
                 
-                {/* STEP 1: Specific Geolocation */}
+                {/* Step 1 */}
                 <div className="flex items-center justify-between">
                   <span className="text-slate-300">
-                    {verifyingQuest.type === 'bento' && '1. เชื่อมสัญญาณ Canteen Beacon'}
-                    {verifyingQuest.type === 'stairs' && '1. เช็คชั้นตึกเรียนด้วย GPS & Altimeter'}
-                    {verifyingQuest.type === 'waste' && '1. ระบุพิกัดสถานีคัดแยกขยะ'}
-                    {verifyingQuest.type === 'recycling' && '1. ตรวจสอบพิกัดตู้ขวด PET อัจฉริยะ'}
-                    {verifyingQuest.type === 'electronics' && '1. สแกน NFC ประจำห้องเรียน/ห้องแล็บ'}
-                    {verifyingQuest.type === 'transit' && '1. เชื่อมต่อตัววัดความเร็ว CU Transit'}
-                    {!verifyingQuest.type && '1. ตรวจสอบ Beacon & GPS'}
+                    1. {verifyingQuest.verify.split('+')[0] || 'ตรวจสอบตำแหน่ง'}
                   </span>
                   {verificationStep >= 1 ? (
                     <span className="text-emerald-400 font-bold">✓ ตรวจพบ</span>
                   ) : (
-                    <span className="text-slate-500 animate-pulse">กำลังตรวจ...</span>
+                    <span className="text-slate-500 animate-pulse">กำลังสแกน...</span>
                   )}
                 </div>
 
-                {/* STEP 2: Real Action Verification */}
+                {/* Step 2 */}
                 <div className="flex items-center justify-between">
                   <span className="text-slate-300">
-                    {verifyingQuest.type === 'bento' && '2. ถ่ายรูปกล่องข้าวส่วนตัว (AI ตรวจ)'}
-                    {verifyingQuest.type === 'stairs' && '2. ตรวจสอบก้าวเดินผ่านเซนเซอร์ (3 ชั้น)'}
-                    {verifyingQuest.type === 'waste' && '2. ถ่ายรูปวิเคราะห์ประเภทเศษอาหาร'}
-                    {verifyingQuest.type === 'recycling' && '2. สแกนบาร์โค้ดข้างขวด/กระป๋อง'}
-                    {verifyingQuest.type === 'electronics' && '2. ถ่ายสแกนสวิตช์เครื่องใช้ไฟฟ้า'}
-                    {verifyingQuest.type === 'transit' && '2. ยืนยันพิกัดความต่างระยะสัญจร'}
-                    {!verifyingQuest.type && '2. บันทึกภาพความเรียบร้อย'}
+                    2. {verifyingQuest.verify.split('+')[1] || 'สแกน QR Code / ยืนยันการกระทำ'}
                   </span>
                   {aiAnalyzing ? (
-                    <span className="text-amber-400 animate-pulse font-bold">กำลังสแกน AI...</span>
-                  ) : photoCaptured ? (
-                    <span className="text-emerald-400 font-bold">✓ สำเร็จ</span>
+                    <span className="text-amber-400 animate-pulse font-bold">กำลังสแกน...</span>
+                  ) : photoCaptured || qrScanned ? (
+                    <span className="text-emerald-400 font-bold">✓ ผ่านด่าน</span>
                   ) : verificationStep >= 1 ? (
-                    <span className="text-pink-400 font-bold animate-pulse">📸 รอถ่ายรูป/ซิงก์</span>
+                    <span className="text-pink-400 font-bold animate-pulse">📸 รอสแกน / ถ่ายรูป</span>
                   ) : (
                     <span className="text-slate-600">รอดำเนินการ</span>
                   )}
                 </div>
 
-                {/* STEP 3: Real CUBEMS Integration */}
+                {/* Step 3 */}
                 <div className="flex items-center justify-between">
                   <span className="text-slate-300">
-                    {verifyingQuest.type === 'electronics' && '3. บันทึก Drop-load ลงระบบ CUBEMS'}
-                    {verifyingQuest.type === 'recycling' && '3. บันทึกผลน้ำหนักลงตู้รีไซเคิล'}
-                    {verifyingQuest.type === 'bento' && '3. ลดพลาสติกสะสมลงฐานข้อมูลกลาง'}
-                    {verifyingQuest.type === 'stairs' && '3. แปลงแคลอรี่สะสมของคณะ'}
-                    {verifyingQuest.type === 'waste' && '3. บันทึกน้ำหนักเศษขยะเปียก'}
-                    {verifyingQuest.type === 'transit' && '3. เชื่อม telemetry คาร์บอนต่ำ'}
-                    {!verifyingQuest.type && '3. ซิงก์พลังงานระบบ CUBEMS'}
+                    3. บันทึกผลลงฐานข้อมูล (วันละ 1 รอบ)
                   </span>
                   {verificationStep >= 3 ? (
-                    <span className="text-emerald-400 font-bold">✓ ดึงข้อมูลสำเร็จ</span>
+                    <span className="text-emerald-400 font-bold">✓ สำเร็จแล้ว</span>
                   ) : verificationStep >= 2 ? (
-                    <span className="text-emerald-400 animate-pulse font-semibold">กำลังเชื่อมฐานข้อมูล...</span>
+                    <span className="text-emerald-400 animate-pulse font-semibold">กำลังซิงก์...</span>
                   ) : (
                     <span className="text-slate-600">รอดำเนินการ</span>
                   )}
                 </div>
               </div>
 
-              {/* Dynamic Interactive button for steps */}
+              <div className="bg-slate-800/80 p-2 rounded-xl text-[9.5px] text-slate-300 leading-tight">
+                <strong>💡 กลไกป้องกันการโกง:</strong> {verifyingQuest.riskDesc}
+              </div>
+
+              {/* Action Buttons */}
               {verificationStep < 3 ? (
                 <button 
                   onClick={handleNextVerificationStep}
                   className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
                 >
-                  {verificationStep === 0 && <>ถัดไป: เช็คพิกัด Beacon</>}
+                  {verificationStep === 0 && <>ถัดไป: สแกนพิกัด GPS / Beacon</>}
                   {verificationStep === 1 && (
-                    <>
-                      {['bento', 'waste', 'recycling', 'electronics'].includes(verifyingQuest.type) ? (
-                        <><Camera className="w-4 h-4" /> แตะเพื่อวิเคราะห์ภาพถ่าย (AI)</>
-                      ) : (
-                        <><Activity className="w-4 h-4" /> ซิงก์ข้อมูล Health Sensor โทรศัพท์</>
-                      )}
-                    </>
+                    <><QrCode className="w-4 h-4" /> แตะเพื่อสแกน QR / ถ่ายรูปยืนยัน</>
                   )}
-                  {verificationStep === 2 && <>อัปโหลดเพื่อบันทึกประวัติลง CUBEMS</>}
+                  {verificationStep === 2 && <>อัปโหลดเพื่อบันทึกประวัติการทำเควส</>}
                 </button>
               ) : (
                 <div className="text-center py-2 space-y-2">
-                  <p className="text-emerald-400 font-bold text-xs">🎉 ยืนยันเสร็จสมบูรณ์ 100%!</p>
+                  <p className="text-emerald-400 font-bold text-xs">🎉 ทำเควสสำเร็จ! ได้รับ +{verifyingQuest.reward} Eco-Coins</p>
                   <button 
                     onClick={() => setVerifyingQuest(null)}
                     className="w-full bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-semibold"
@@ -683,14 +830,14 @@ export default function App() {
           </div>
         )}
 
-        {/* SCROLLABLE MAIN CONTENTS */}
+        {/* SCROLLABLE MAIN CONTENT AREA */}
         <div className="flex-1 overflow-y-auto bg-slate-50 relative pb-16">
           
-          {/* TAB 1: HOME PAGE WITH LEADERBOARD INTEGRATED */}
+          {/* TAB 1: HOME PAGE */}
           {activeTab === 'home' && (
             <div className="p-4 space-y-4 animate-fadeIn">
               
-              {/* Premium Carbon Hero Profile Card */}
+              {/* Carbon Hero Profile Card */}
               <div className="bg-gradient-to-br from-indigo-600 via-rose-600 to-indigo-700 rounded-3xl p-4 text-white shadow-lg relative overflow-hidden">
                 <div className="absolute right-[-20px] bottom-[-20px] opacity-10">
                   <Award className="w-32 h-32 rotate-12" />
@@ -735,14 +882,14 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Eco Alert Bubble */}
+              {/* Realtime Event Alert */}
               {notifications.length > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-start gap-2.5 relative">
                   <div className="shrink-0 w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-700">
                     <Info className="w-4.5 h-4.5" />
                   </div>
                   <div className="flex-1 pr-6">
-                    <p className="text-[11px] font-bold text-amber-900">เหตุการณ์พลังงานเรียลไทม์:</p>
+                    <p className="text-[11px] font-bold text-amber-900">การแจ้งเตือนเควสด่วน:</p>
                     <p className="text-[10px] text-amber-800 mt-0.5 leading-tight">{notifications[0].text}</p>
                   </div>
                   <button 
@@ -754,32 +901,11 @@ export default function App() {
                 </div>
               )}
 
-              {/* Mascot Bubble Tip - Nong Greeny */}
-              <div className="bg-emerald-50/80 border border-emerald-100 rounded-2xl p-3 flex items-start gap-3">
-                <div className="shrink-0 w-11 h-11 bg-white rounded-full border-2 border-emerald-400 flex items-center justify-center shadow-sm">
-                  <svg viewBox="0 0 40 40" className="w-8 h-8">
-                    <path d="M20 32 C20 32, 28 22, 28 15 C28 9, 24 5, 20 5 C16 5, 12 9, 12 15 C12 22, 20 32, 20 32 Z" fill="#10B981" />
-                    <path d="M20 32 C20 32, 24 25, 24 19 C24 16, 22 14, 20 14 C18 14, 16 16, 16 19 C16 25, 20 32, 20 32 Z" fill="#E71D73" opacity="0.8" />
-                    <circle cx="17" cy="15" r="1.5" fill="#fff" />
-                    <circle cx="23" cy="15" r="1.5" fill="#fff" />
-                    <path d="M18 18 Q20 20 22 18" stroke="#fff" strokeWidth="1" strokeLinecap="round" fill="none" />
-                  </svg>
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-emerald-900 flex items-center gap-1">
-                    น้อง Greeny ท้าทาย! <Sparkles className="w-3.5 h-3.5 text-pink-500 fill-pink-500" />
-                  </h4>
-                  <p className="text-[10px] text-slate-600 mt-0.5 leading-relaxed">
-                    &ldquo;พิชิต 3 เควสเพื่อปลดล็อกการแลกรางวัลเหรียญทองในมินิเกมวันนี้กันเถอะครับ!&rdquo;
-                  </p>
-                </div>
-              </div>
-
-              {/* STATS PROGRESS OF COMPLETED QUESTS FOR GAME ELIGIBILITY */}
+              {/* Progress to unlock game */}
               <div className="bg-white rounded-2xl p-3 border border-slate-200/80 shadow-xs">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-[10.5px] font-extrabold text-slate-700 flex items-center gap-1">
-                    🎯 เควสเพื่อปลดล็อคเกมและรางวัลคอยน์วันนี้
+                    🎯 เงื่อนไขปลดล็อคการแปลงคะแนนเกมวันนี้
                   </span>
                   <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
                     isEligibleToConvert ? 'bg-emerald-100 text-emerald-700' : 'bg-pink-50 text-pink-600'
@@ -795,12 +921,12 @@ export default function App() {
                 </div>
                 <p className="text-[9.5px] text-slate-500 leading-normal flex items-center gap-1">
                   {isEligibleToConvert 
-                    ? "✨ ปลดล็อกสิทธิ์แล้ว! คุณสามารถแปลงแต้มเกม Block Blast เป็น Coins วันนี้ได้สำเร็จ!" 
-                    : "🔒 ยังไม่ได้รับสิทธิ์แลกแต้มมินิเกม (ทำภารกิจให้ครบ 3 ก่อนครับ)"}
+                    ? "✨ ปลดล็อกสิทธิ์แล้ว! คุณสามารถแปลงคะแนน Block Blast เป็น Eco-Coins วันนี้!" 
+                    : "🔒 ต้องพิชิตภารกิจอย่างน้อย 3 เควสก่อน จึงจะแปลงคะแนนมินิเกมได้ครับ"}
                 </p>
               </div>
 
-              {/* FACULTY LEADERBOARD (RES-Rank) - HIGHLY VISIBLE ON HOME TAB */}
+              {/* Faculty Leaderboard */}
               <div className="bg-white rounded-2xl p-3 border border-slate-200/80 shadow-xs space-y-3">
                 <div className="flex justify-between items-center">
                   <h4 className="text-xs font-black text-slate-800 tracking-tight flex items-center gap-1">
@@ -810,7 +936,6 @@ export default function App() {
                 </div>
 
                 <div className="space-y-2">
-                  {/* Rank 1 */}
                   <div className="bg-gradient-to-r from-pink-50 to-indigo-50 border border-pink-100 rounded-xl p-2.5 flex justify-between items-center">
                     <div className="flex items-center gap-2.5">
                       <div className="w-6 h-6 rounded-full bg-pink-100 border border-pink-200 text-pink-600 font-black text-[10px] flex items-center justify-center">
@@ -818,9 +943,7 @@ export default function App() {
                       </div>
                       <div>
                         <h5 className="text-[10.5px] font-bold text-slate-800">วิศวกรรมศาสตร์ (ENG)</h5>
-                        <p className="text-[8.5px] text-slate-500">
-                          ลดคาร์บอนแล้ว: <span className="font-bold text-slate-700">2,450 kg CO2e</span>
-                        </p>
+                        <p className="text-[8.5px] text-slate-500">ลดคาร์บอนแล้ว: <span className="font-bold text-slate-700">2,450 kg CO2e</span></p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -829,41 +952,16 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Rank 2 */}
                   <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 flex justify-between items-center">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-6 h-6 rounded-full bg-slate-200 border border-slate-300 text-slate-700 font-black text-[10px] flex items-center justify-center">
-                        2
-                      </div>
+                      <div className="w-6 h-6 rounded-full bg-slate-200 border border-slate-300 text-slate-700 font-black text-[10px] flex items-center justify-center">2</div>
                       <div>
                         <h5 className="text-[10.5px] font-bold text-slate-800">วิทยาศาสตร์ (SCI)</h5>
-                        <p className="text-[8.5px] text-slate-500">
-                          ลดคาร์บอนแล้ว: <span className="font-bold text-slate-700">1,980 kg CO2e</span>
-                        </p>
+                        <p className="text-[8.5px] text-slate-500">ลดคาร์บอนแล้ว: <span className="font-bold text-slate-700">1,980 kg CO2e</span></p>
                       </div>
                     </div>
                     <div className="text-right">
                       <span className="text-[9.5px] font-bold text-slate-700 block">42.0 RES</span>
-                      <span className="text-[8px] text-slate-400">กิลด์แล็บเคมี</span>
-                    </div>
-                  </div>
-
-                  {/* Rank 3 */}
-                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 flex justify-between items-center">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-6 h-6 rounded-full bg-slate-200 border border-slate-300 text-slate-700 font-black text-[10px] flex items-center justify-center">
-                        3
-                      </div>
-                      <div>
-                        <h5 className="text-[10.5px] font-bold text-slate-800">สถาปัตยกรรมศาสตร์ (ARC)</h5>
-                        <p className="text-[8.5px] text-slate-500">
-                          ลดคาร์บอนแล้ว: <span className="font-bold text-slate-700">1,420 kg CO2e</span>
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[9.5px] font-bold text-slate-500 block">38.5 RES</span>
-                      <span className="text-[8px] text-slate-400">สายเดินเรียน</span>
                     </div>
                   </div>
                 </div>
@@ -872,15 +970,14 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 2: ROUTE NAVIGATION (TRANSIT ONLY) */}
+          {/* TAB 2: GREEN MOBILITY */}
           {activeTab === 'route' && (
             <div className="p-4 space-y-4 animate-fadeIn">
               
-              {/* Point Input Selector */}
               <div className="bg-white rounded-2xl p-3 border border-slate-200 shadow-xs space-y-2">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
                   <Navigation className="w-4.5 h-4.5 text-pink-600" />
-                  <span className="text-xs font-black text-slate-800">ระบบจำลองการเดินทางคาร์บอนต่ำ</span>
+                  <span className="text-xs font-black text-slate-800">สแกนเส้นทาง Green Mobility</span>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-2 text-xs">
@@ -910,64 +1007,45 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Simplified Map representation */}
-              <div className="bg-slate-900 rounded-2xl p-3 border border-slate-800 relative h-[160px] overflow-hidden shadow-inner">
-                <div className="absolute top-2 left-2 bg-slate-800/80 backdrop-blur-md px-2 py-0.5 rounded text-[8px] font-bold text-emerald-400 flex items-center gap-1 z-10">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  CU Digital Twin Grid Line
-                </div>
-
-                <svg className="w-full h-full" viewBox="0 0 320 200">
-                  <line x1="0" y1="50" x2="320" y2="50" stroke="#1e293b" strokeWidth="1" strokeDasharray="2,2" />
-                  <line x1="0" y1="100" x2="320" y2="100" stroke="#1e293b" strokeWidth="1" strokeDasharray="2,2" />
-                  <line x1="0" y1="150" x2="320" y2="150" stroke="#1e293b" strokeWidth="1" strokeDasharray="2,2" />
-                  
-                  <path d="M 40 140 Q 160 50 280 120" stroke="#334155" strokeWidth="3" fill="none" />
-                  <path d="M 40 140 Q 100 120 280 120" stroke="#10B981" strokeWidth="3" fill="none" strokeDasharray="4,4" />
-                  <path d="M 40 140 Q 180 180 280 120" stroke="#E11D48" strokeWidth="2.5" fill="none" />
-
-                  <g transform="translate(40, 140)">
-                    <circle r="8" fill="#E11D48" />
-                    <circle r="4" fill="#fff" />
-                  </g>
-
-                  <g transform="translate(280, 120)">
-                    <circle r="8" fill="#10B981" />
-                    <circle r="4" fill="#fff" />
-                  </g>
-                </svg>
-              </div>
-
-              {/* Transit Options cards */}
+              {/* Mobility Quests List */}
               <div className="space-y-2.5">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">วิธีเดินทางยอดนิยมที่แนะนำ:</p>
-                {transitData.map(transit => {
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">หมวดเควสเดินทางคาร์บอนต่ำ:</p>
+                {mobilityData.map(mQuest => {
+                  const isDone = completedQuests.includes(mQuest.id);
                   return (
                     <div 
-                      key={transit.id}
+                      key={mQuest.id}
                       className="bg-white rounded-2xl p-3 border border-slate-100 hover:border-slate-200 shadow-xs flex justify-between items-center transition-all"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl flex flex-col items-center justify-center font-bold text-lg bg-emerald-50 text-emerald-700 shrink-0">
-                          {transit.icon}
+                          {mQuest.icon}
                         </div>
 
                         <div>
-                          <h4 className="text-[11px] font-bold text-slate-800">{transit.title}</h4>
-                          <p className="text-[9px] text-slate-500 leading-tight mt-0.5">{transit.desc}</p>
-                          <div className="flex gap-2.5 mt-1.5 text-[8.5px] font-bold text-slate-400">
-                            <span className="text-emerald-600">🌳 ลด {transit.carbon} kg</span>
-                            <span className="text-pink-600">⚡ +{transit.xp} XP</span>
+                          <h4 className="text-[11px] font-bold text-slate-800">{mQuest.title}</h4>
+                          <p className="text-[9px] text-slate-500 leading-tight mt-0.5">{mQuest.desc}</p>
+                          <div className="mt-1">
+                            {getRiskBadge(mQuest.risk)}
                           </div>
                         </div>
                       </div>
 
-                      <button 
-                        onClick={() => handleInitiateQuestVerification({ ...transit, type: 'transit' })}
-                        className="text-[10px] font-black px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs shrink-0 transition-all active:scale-95"
-                      >
-                        +{transit.reward}🪙
-                      </button>
+                      <div className="shrink-0 text-right space-y-1">
+                        <span className="text-[10.5px] font-black text-pink-600 block">+{mQuest.reward} 🪙</span>
+                        {isDone ? (
+                          <span className="text-[9px] bg-slate-100 text-slate-500 font-bold px-2 py-1 rounded-lg block">
+                            ทำแล้ววันนี้
+                          </span>
+                        ) : (
+                          <button 
+                            onClick={() => handleInitiateQuestVerification(mQuest)}
+                            className="text-[10px] font-black px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-95"
+                          >
+                            ทำเควส
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -976,101 +1054,204 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 3: QUESTS BOARD */}
+          {/* TAB 3: QUESTS BOARD (ZERO WASTE, ENERGY, SOCIAL CO-OP) */}
           {activeTab === 'quests' && (
             <div className="p-4 space-y-4 animate-fadeIn">
               
-              {/* Category buttons selection */}
-              <div className="bg-white p-1 rounded-2xl border border-slate-200/80 grid grid-cols-4 gap-1 select-none">
-                {['daily', 'classroom', 'lab', 'weekly'].map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveQuestTab(tab)}
-                    className={`py-1.5 rounded-xl text-[10px] font-bold capitalize transition-all ${
-                      activeQuestTab === tab 
-                        ? 'bg-pink-600 text-white' 
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    {tab === 'daily' ? 'รายวัน' : tab === 'classroom' ? 'ห้องเรียน' : tab === 'lab' ? 'ห้องแล็บ' : 'ท้าทาย'}
-                  </button>
-                ))}
+              {/* Quest Category Switcher */}
+              <div className="bg-white p-1 rounded-2xl border border-slate-200/80 grid grid-cols-3 gap-1 select-none">
+                <button
+                  onClick={() => setActiveQuestCategory('zero_waste')}
+                  className={`py-1.5 rounded-xl text-[10px] font-bold transition-all ${
+                    activeQuestCategory === 'zero_waste' ? 'bg-pink-600 text-white' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Zero Waste
+                </button>
+                <button
+                  onClick={() => setActiveQuestCategory('energy')}
+                  className={`py-1.5 rounded-xl text-[10px] font-bold transition-all ${
+                    activeQuestCategory === 'energy' ? 'bg-pink-600 text-white' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Building Energy
+                </button>
+                <button
+                  onClick={() => setActiveQuestCategory('social')}
+                  className={`py-1.5 rounded-xl text-[10px] font-bold transition-all ${
+                    activeQuestCategory === 'social' ? 'bg-pink-600 text-white' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  ชวนเพื่อน (Co-Op)
+                </button>
               </div>
 
-              {/* Dynamic list rendering */}
-              <div className="space-y-2.5">
-                {questsData[activeQuestTab].map((quest) => {
-                  const isCompleted = completedQuests.includes(quest.id);
-                  
-                  return (
-                    <div 
-                      key={quest.id}
-                      className={`bg-white rounded-2xl p-3 border-2 transition-all relative overflow-hidden ${
-                        isCompleted 
-                          ? 'border-emerald-200 bg-emerald-50/10' 
-                          : 'border-slate-100 hover:border-slate-200/80'
-                      }`}
-                    >
-                      <span className={`absolute top-0 left-0 text-[8px] font-black px-2 py-0.5 rounded-br-lg uppercase ${
-                        quest.rarity === 'Legendary' ? 'bg-amber-500 text-slate-950' :
-                        quest.rarity === 'Epic' ? 'bg-purple-600 text-white' :
-                        quest.rarity === 'Rare' ? 'bg-sky-600 text-white' : 'bg-slate-200 text-slate-700'
-                      }`}>
-                        {quest.rarity}
-                      </span>
-
-                      <div className="flex items-start gap-3 mt-2">
-                        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xl shrink-0">
-                          {quest.icon}
-                        </div>
-
-                        <div className="flex-1">
-                          <h4 className="text-[11px] font-bold text-slate-800 flex items-center gap-1">
-                            {quest.title}
-                          </h4>
-                          <p className="text-[10px] text-slate-500 leading-normal mt-0.5">{quest.desc}</p>
-                          
-                          <div className="mt-2 flex gap-3 text-[9px] font-semibold text-slate-400">
-                            <span className="flex items-center gap-0.5 text-yellow-600">
-                              🪙 +{quest.reward}
-                            </span>
-                            <span className="flex items-center gap-0.5 text-pink-600">
-                              ⚡ +{quest.xp} XP
-                            </span>
-                            <span className="flex items-center gap-0.5 text-emerald-600">
-                              🌳 {quest.carbon} kg
-                            </span>
+              {/* Zero Waste List */}
+              {activeQuestCategory === 'zero_waste' && (
+                <div className="space-y-2.5">
+                  {zeroWasteQuests.map((quest) => {
+                    const isDone = completedQuests.includes(quest.id);
+                    return (
+                      <div key={quest.id} className="bg-white rounded-2xl p-3 border border-slate-100 hover:border-slate-200 shadow-xs flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xl shrink-0">
+                            {quest.icon}
+                          </div>
+                          <div>
+                            <h4 className="text-[11px] font-bold text-slate-800">{quest.title}</h4>
+                            <p className="text-[9.5px] text-slate-500 leading-tight mt-0.5">{quest.desc}</p>
+                            <div className="mt-1">
+                              {getRiskBadge(quest.risk)}
+                            </div>
                           </div>
                         </div>
 
-                        <div className="shrink-0 flex items-center self-center">
-                          {isCompleted ? (
-                            <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-0.5">
-                              <CheckCircle2 className="w-4 h-4" /> สำเร็จแล้ว
+                        <div className="shrink-0 text-right space-y-1">
+                          <span className="text-[10.5px] font-black text-pink-600 block">+{quest.reward} 🪙</span>
+                          {isDone ? (
+                            <span className="text-[9px] bg-slate-100 text-slate-500 font-bold px-2 py-1 rounded-lg block">
+                              ทำแล้ววันนี้
                             </span>
                           ) : (
                             <button 
                               onClick={() => handleInitiateQuestVerification(quest)}
-                              className="bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all active:scale-95"
+                              className="text-[10px] font-bold px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white transition-all active:scale-95"
                             >
                               ทำเควส
                             </button>
                           )}
                         </div>
                       </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Building Energy List */}
+              {activeQuestCategory === 'energy' && (
+                <div className="space-y-2.5">
+                  {energyQuests.map((quest) => {
+                    const isDone = completedQuests.includes(quest.id);
+                    return (
+                      <div key={quest.id} className="bg-white rounded-2xl p-3 border border-slate-100 hover:border-slate-200 shadow-xs flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xl shrink-0">
+                            {quest.icon}
+                          </div>
+                          <div>
+                            <h4 className="text-[11px] font-bold text-slate-800">{quest.title}</h4>
+                            <p className="text-[9.5px] text-slate-500 leading-tight mt-0.5">{quest.desc}</p>
+                            <div className="mt-1">
+                              {getRiskBadge(quest.risk)}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 text-right space-y-1">
+                          <span className="text-[10.5px] font-black text-pink-600 block">+{quest.reward} 🪙</span>
+                          {isDone ? (
+                            <span className="text-[9px] bg-slate-100 text-slate-500 font-bold px-2 py-1 rounded-lg block">
+                              ทำแล้ววันนี้
+                            </span>
+                          ) : (
+                            <button 
+                              onClick={() => handleInitiateQuestVerification(quest)}
+                              className="text-[10px] font-bold px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white transition-all active:scale-95"
+                            >
+                              ทำเควส
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Social / Co-Op Section */}
+              {activeQuestCategory === 'social' && (
+                <div className="space-y-3">
+                  <div className="bg-gradient-to-br from-indigo-900 to-slate-900 text-white rounded-2xl p-3.5 space-y-3 border border-indigo-500/30">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-black flex items-center gap-1.5 text-indigo-300">
+                        <Users className="w-4 h-4 text-emerald-400" /> สมาชิกปาร์ตี้ Co-Op วันนี้
+                      </h4>
+                      <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-bold">
+                        +{socialQuests[0].reward} Coins/คน
+                      </span>
                     </div>
-                  );
-                })}
-              </div>
+
+                    <div className="space-y-1.5">
+                      {partyMembers.map((member, idx) => (
+                        <div key={idx} className="bg-white/10 px-2.5 py-1.5 rounded-xl text-[10px] flex justify-between items-center">
+                          <span>{member}</span>
+                          <span className="text-emerald-400 font-bold">✓ พร้อมทำเควส</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-2 pt-1">
+                      <input 
+                        type="text" 
+                        placeholder="กรอกไอดีเพื่อนเพื่อชวนร่วมทีม..." 
+                        value={friendCodeInput}
+                        onChange={(e) => setFriendCodeInput(e.target.value)}
+                        className="flex-1 bg-slate-800 text-white border border-slate-700 rounded-xl px-2.5 py-1 text-[10px]"
+                      />
+                      <button 
+                        onClick={handleAddPartyMember}
+                        className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-1 rounded-xl text-[10px] flex items-center gap-1"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" /> ชวน
+                      </button>
+                    </div>
+                  </div>
+
+                  {socialQuests.map((quest) => {
+                    const isDone = completedQuests.includes(quest.id);
+                    return (
+                      <div key={quest.id} className="bg-white rounded-2xl p-3 border border-slate-100 flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-pink-50 flex items-center justify-center text-xl shrink-0">
+                            {quest.icon}
+                          </div>
+                          <div>
+                            <h4 className="text-[11px] font-bold text-slate-800">{quest.title}</h4>
+                            <p className="text-[9.5px] text-slate-500 mt-0.5">{quest.desc}</p>
+                            <div className="mt-1">
+                              {getRiskBadge(quest.risk)}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 text-right space-y-1">
+                          <span className="text-[10.5px] font-black text-pink-600 block">+{quest.reward} 🪙</span>
+                          {isDone ? (
+                            <span className="text-[9px] bg-slate-100 text-slate-500 font-bold px-2 py-1 rounded-lg block">
+                              ทำแล้ววันนี้
+                            </span>
+                          ) : (
+                            <button 
+                              onClick={() => handleInitiateQuestVerification(quest)}
+                              className="text-[10px] font-bold px-3 py-1.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white transition-all active:scale-95"
+                            >
+                              ทำเควสทีม
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
             </div>
           )}
 
-          {/* TAB 4: WALLET & BALANCED ECO-COIN SHOP */}
+          {/* TAB 4: WALLET */}
           {activeTab === 'wallet' && (
             <div className="p-4 space-y-4 animate-fadeIn">
               
-              {/* Premium Card Displaying coins */}
               <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 rounded-3xl p-4 text-white relative overflow-hidden border border-indigo-500/20 shadow-md">
                 <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 opacity-10">
                   <Wallet className="w-36 h-36" />
@@ -1086,7 +1267,7 @@ export default function App() {
                 <div className="mt-4 pt-3 border-t border-indigo-800 flex justify-between text-[10px] text-indigo-200">
                   <div>
                     <p className="text-[9px] text-indigo-400">เทียบเท่ามูลค่าสิ่งแวดล้อม</p>
-                    <p className="font-bold text-white">{ (coins / 10).toFixed(0) } บาท</p>
+                    <p className="font-bold text-white">{(coins / 10).toFixed(0)} บาท</p>
                   </div>
                   <div>
                     <p className="text-[9px] text-indigo-400">ระดับเครดิตคาร์บอน</p>
@@ -1095,10 +1276,10 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Symmetrical Rewards Grid Layout */}
+              {/* Symmetrical Rewards Grid */}
               <div className="space-y-3">
                 <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Gift className="w-4 h-4 text-pink-600" /> ของรางวัลในรั้วมหาวิทยาลัย
+                  <Gift className="w-4 h-4 text-pink-600" /> ของรางวัลสิทธิประโยชน์จุฬาฯ
                 </h4>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -1130,10 +1311,9 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Recent Transactions list */}
+              {/* Transactions */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-slate-800">ประวัติการทำความดีและแลกของ</h4>
-                
+                <h4 className="text-xs font-bold text-slate-800">ประวัติการสะสมและการแลกของ</h4>
                 <div className="space-y-1.5">
                   {transactions.slice(0, 4).map((tx) => (
                     <div key={tx.id} className="bg-white p-2.5 rounded-xl border border-slate-100 flex justify-between items-center text-[10px]">
@@ -1141,9 +1321,7 @@ export default function App() {
                         <p className="font-bold text-slate-800">{tx.title}</p>
                         <p className="text-[8px] text-slate-400 mt-0.5">{tx.date}</p>
                       </div>
-                      <span className={`font-black ${
-                        tx.type === 'earn' ? 'text-emerald-600' : 'text-rose-600'
-                      }`}>
+                      <span className={`font-black ${tx.type === 'earn' ? 'text-emerald-600' : 'text-rose-600'}`}>
                         {tx.type === 'earn' ? `+${tx.change}` : tx.change} 🪙
                       </span>
                     </div>
@@ -1154,22 +1332,20 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 5: MINIGAME BLOCK BLAST WITH LAG-FREE FLOATING PHYSICS */}
+          {/* TAB 5: GAME BLOCK BLAST */}
           {activeTab === 'game' && (
             <div className="p-4 space-y-4 animate-fadeIn">
               
-              {/* Score panel with synergy display */}
               <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white rounded-3xl p-4 border border-indigo-500/25 shadow-md">
                 <div className="flex justify-between items-center">
                   <span className="text-[9px] bg-indigo-500/30 text-indigo-200 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
                     <Gamepad2 className="w-3.5 h-3.5 text-emerald-400 animate-pulse" /> ECO BLOCK BLAST
                   </span>
-                  <span className="text-[10px] text-emerald-400 bg-emerald-950/50 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
-                    🎨 ธีม: <span className="uppercase font-black text-white">{currentTheme}</span>
+                  <span className="text-[10px] text-emerald-400 bg-emerald-950/50 px-2.5 py-0.5 rounded-full font-bold uppercase">
+                    🎨 ธีม: {currentTheme}
                   </span>
                 </div>
 
-                {/* Highly Visible, Symmetrical Neon Score Counter */}
                 <div className="text-center py-3 my-2 bg-black/40 rounded-2xl border border-indigo-500/20 shadow-inner">
                   <p className="text-[10px] text-indigo-300 font-extrabold uppercase tracking-widest">คะแนนสะสมบลาสต์ปัจจุบัน</p>
                   <p className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-indigo-300 tracking-tight mt-1">
@@ -1177,18 +1353,17 @@ export default function App() {
                   </p>
                 </div>
 
-                {/* Score to Coin Conversion panel */}
                 <div className="mt-4 pt-3 border-t border-indigo-800/80 flex items-center justify-between">
                   <div className="flex-1 pr-3">
-                    <p className="text-[8.5px] text-indigo-300">อัตราแปลงพิกเซลความดีของคุณ</p>
+                    <p className="text-[8.5px] text-indigo-300">อัตราแปลงพิกเซลความดีเป็น Eco-Coins</p>
                     <p className="text-[10.5px] font-bold text-white flex items-center gap-1 mt-0.5">
                       <span className="text-emerald-400 font-black">10,000 คะแนน</span> = 1 🪙
                     </p>
-                    <p className="text-[8.5px] text-slate-400 mt-1 flex items-center gap-1">
+                    <p className="text-[8.5px] text-slate-400 mt-1">
                       {isEligibleToConvert ? (
-                        <span className="text-emerald-400 font-semibold">✓ สำเร็จเควสครบ 3 สิทธิ์พร้อมแลก!</span>
+                        <span className="text-emerald-400 font-semibold">✓ พิชิตครบ 3 เควสตามเงื่อนไขวันนี้แล้ว!</span>
                       ) : (
-                        <span className="text-rose-400 flex items-center gap-1 font-bold">
+                        <span className="text-rose-400 font-bold flex items-center gap-1">
                           <Lock className="w-3 h-3" /> พิชิตให้ครบ 3 เควสก่อนวันนี้ (ทำแล้ว {completedQuests.length}/3)
                         </span>
                       )}
@@ -1209,7 +1384,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Main Game Grid (6x6 Grid Block Blast) */}
+              {/* 6x6 Grid Block Blast */}
               <div className="flex flex-col items-center justify-center space-y-3">
                 <div className="bg-slate-900 p-3 rounded-2xl border-4 border-slate-800 shadow-xl max-w-full">
                   <div id="game-grid-board" className="grid grid-cols-6 gap-1.5 w-[260px] h-[260px] relative">
@@ -1224,9 +1399,7 @@ export default function App() {
                             const dR = rIdx - hoverCell.r;
                             const dC = cIdx - hoverCell.c;
                             if (dR >= 0 && dR < sRows && dC >= 0 && dC < sCols) {
-                              if (activeShape.cells[dR][dC] === 1) {
-                                isHovered = true;
-                              }
+                              if (activeShape.cells[dR][dC] === 1) isHovered = true;
                             }
                           }
                         }
@@ -1242,9 +1415,7 @@ export default function App() {
                                 : 'bg-slate-800 border border-slate-950/40'
                             }`}
                           >
-                            {cell === 1 && (
-                              <span className="absolute inset-0 bg-white/10 rounded-md"></span>
-                            )}
+                            {cell === 1 && <span className="absolute inset-0 bg-white/10 rounded-md"></span>}
                           </div>
                         );
                       })
@@ -1252,7 +1423,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* GAME OVER CARD OVERLAY */}
                 {isGameOver && (
                   <div className="bg-rose-50 border border-rose-200 p-3 rounded-2xl text-center space-y-2 max-w-xs animate-bounce">
                     <p className="text-xs font-bold text-rose-800">👾 ไม่มีช่องว่างเหลือสำหรับบล็อกถัดไป!</p>
@@ -1265,18 +1435,10 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Snappy drag-and-drop info tag */}
-                {draggedShapeIdx !== null && (
-                  <div className="text-[10px] font-bold text-indigo-400 flex items-center gap-1 bg-indigo-950/40 px-3 py-1 rounded-full border border-indigo-800/30">
-                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping"></span>
-                    ปล่อยเพื่อวางบล็อกบนกระดานด้านบน
-                  </div>
-                )}
-
-                {/* Handheld shapes generator deck (Clean layout - NO LABELS) */}
+                {/* Handheld shapes deck */}
                 <div className="w-full space-y-2">
                   <p className="text-[10px] text-center font-bold text-slate-400 uppercase tracking-wider">
-                    ลากบล็อกสีเขียวไปจัดเรียงพิกัดด้านบน 🧩
+                    ลากบล็อกไปจัดเรียงพิกัดบนกระดาน 🧩
                   </p>
 
                   <div className="grid grid-cols-3 gap-3 bg-white p-3 rounded-2xl border border-slate-200/80">
@@ -1307,11 +1469,9 @@ export default function App() {
                               ? `translate3d(${dragPos.x}px, ${dragPos.y}px, 0px) scale(1.15)` 
                               : 'none',
                             zIndex: draggedShapeIdx === shapeIdx ? 50 : 1,
-                            pointerEvents: 'auto',
-                            touchAction: 'none'
+                            pointerEvents: 'auto'
                           }}
                         >
-                          {/* Visual render of the available mini tetromino shape with no title labels */}
                           <div className="flex flex-col gap-0.5 justify-center items-center pointer-events-none">
                             {shape.cells.map((row, r) => (
                               <div key={r} className="flex gap-0.5">
@@ -1319,9 +1479,7 @@ export default function App() {
                                   <div 
                                     key={c} 
                                     className={`w-2.5 h-2.5 rounded-xs ${
-                                      cell === 1 
-                                        ? `bg-gradient-to-br ${getThemeBlockClass(currentTheme)}` 
-                                        : 'bg-transparent'
+                                      cell === 1 ? `bg-gradient-to-br ${getThemeBlockClass(currentTheme)}` : 'bg-transparent'
                                     }`}
                                   />
                                 ))}
@@ -1334,13 +1492,12 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Reset button deck */}
                 <div className="flex justify-center w-full">
                   <button 
                     onClick={handleResetGame}
                     className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-3.5 py-2 rounded-xl transition-all"
                   >
-                    <RotateCcw className="w-3.5 h-3.5" /> รีเซ็ตคะแนนเกมใหม่
+                    <RotateCcw className="w-3.5 h-3.5" /> รีเซ็ตกระดานใหม่
                   </button>
                 </div>
               </div>
@@ -1350,10 +1507,9 @@ export default function App() {
 
         </div>
 
-        {/* BOTTOM GLOBAL MOBILE TAB NAVIGATION BAR */}
+        {/* BOTTOM NAVIGATION BAR */}
         <div className="absolute bottom-0 left-0 right-0 h-[64px] bg-white border-t border-slate-200/80 px-4 py-2 flex justify-around items-center rounded-t-2xl shadow-lg z-20 select-none shrink-0">
           
-          {/* Tab 1: Home */}
           <button 
             onClick={() => setActiveTab('home')}
             className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all ${
@@ -1364,7 +1520,6 @@ export default function App() {
             <span className="text-[9px] font-extrabold mt-1">หน้าแรก</span>
           </button>
 
-          {/* Tab 2: Map Router */}
           <button 
             onClick={() => setActiveTab('route')}
             className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all ${
@@ -1375,7 +1530,6 @@ export default function App() {
             <span className="text-[9px] font-extrabold mt-1">สแกนเส้นทาง</span>
           </button>
 
-          {/* Tab 3: Quests System */}
           <button 
             onClick={() => setActiveTab('quests')}
             className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all ${
@@ -1386,7 +1540,6 @@ export default function App() {
             <span className="text-[9px] font-extrabold mt-1">เควส</span>
           </button>
 
-          {/* Tab 4: Wallet & Rewards */}
           <button 
             onClick={() => setActiveTab('wallet')}
             className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all ${
@@ -1397,7 +1550,6 @@ export default function App() {
             <span className="text-[9px] font-extrabold mt-1">กระเป๋าเงิน</span>
           </button>
 
-          {/* Tab 5: Handheld Playable Game */}
           <button 
             onClick={() => setActiveTab('game')}
             className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all ${
@@ -1415,11 +1567,3 @@ export default function App() {
     </div>
   );
 }
-```
-eof
-
----
-
-เรียบร้อยครับ! โค้ดชุดนี้ได้รับการขัดเกลาและตรวจสอบโครงสร้างภายในอย่างเข้มข้นที่สุดแล้ว:
-1. **ลบส่วนสัญลักษณ์มาร์กดาวน์ (\`\`\`) และความคิดเห็นแปลกปลอมนอกวงโค้ดออกทั้งหมด** เพื่อให้บิวด์บน Vercel ผ่านฉลุย 100% ไร้รอยสะดุด
-2. **รักษาความสมบูรณ์และมิติการควบคุมที่ยอดเยี่ยม:** ไม่ว่าจะเป็น UI ที่ได้สัดส่วน, การลากวางที่แม่นยำลื่นไหลขึ้นด้วยฟังก์ชัน `touch-action: none` บนหน้าจอมือถือ และเงื่อนไขการแปลงเหรียญเมื่อผ่านขั้นต่ำ 3 เควสตามที่คุณกำหนดไว้ครับ! 🌳🚀
