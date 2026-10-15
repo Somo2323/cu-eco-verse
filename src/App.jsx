@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Compass, 
   MapPin, 
@@ -16,7 +16,18 @@ import {
   Unlock,
   RotateCcw,
   QrCode,
-  UserPlus
+  UserPlus,
+  Camera,
+  Activity,
+  Zap,
+  Radio,
+  CheckCircle2,
+  AlertTriangle,
+  Layers,
+  ArrowRight,
+  ShieldCheck,
+  RefreshCw,
+  Cpu
 } from 'lucide-react';
 
 const playSynthSound = (type) => {
@@ -29,55 +40,63 @@ const playSynthSound = (type) => {
 
     if (type === 'select') {
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(600, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(850, ctx.currentTime + 0.1);
-      gain.gain.setValueAtTime(0.05, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(550, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.06, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.08);
       osc.start();
-      osc.stop(ctx.currentTime + 0.1);
-    } else if (type === 'place') {
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(350, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.15);
-    } else if (type === 'blast') {
+      osc.stop(ctx.currentTime + 0.08);
+    } else if (type === 'scan') {
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(200, ctx.currentTime);
-      osc.frequency.linearRampToValueAtTime(900, ctx.currentTime + 0.35);
-      gain.gain.setValueAtTime(0.12, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+      osc.frequency.setValueAtTime(400, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(1200, ctx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
       osc.start();
-      osc.stop(ctx.currentTime + 0.35);
-    } else if (type === 'perfect') {
+      osc.stop(ctx.currentTime + 0.2);
+    } else if (type === 'match') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.25);
+    } else if (type === 'success') {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(523.25, ctx.currentTime);
-      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.08);
-      osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.16);
-      osc.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.24);
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.09);
+      osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.18);
+      osc.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.27);
       gain.gain.setValueAtTime(0.12, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.45);
       osc.start();
-      osc.stop(ctx.currentTime + 0.42);
-    } else if (type === 'gameover') {
+      osc.stop(ctx.currentTime + 0.47);
+    } else if (type === 'place') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(320, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(180, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.12);
+    } else if (type === 'blast') {
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(300, ctx.currentTime);
-      osc.frequency.linearRampToValueAtTime(80, ctx.currentTime + 0.5);
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      osc.frequency.setValueAtTime(220, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(950, ctx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.14, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
       osc.start();
-      osc.stop(ctx.currentTime + 0.5);
+      osc.stop(ctx.currentTime + 0.3);
     }
   } catch (e) {
-    console.log("Audio API blocked or unsupported.");
+    // Audio context may be blocked prior to user interaction
   }
 };
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
-  const [activeQuestCategory, setActiveQuestCategory] = useState('zero_waste');
+  const [activeQuestCategory, setActiveQuestCategory] = useState('energy');
   
   const [coins, setCoins] = useState(1280);
   const [carbonSaved, setCarbonSaved] = useState(38.4);
@@ -86,12 +105,13 @@ export default function App() {
   const [level, setLevel] = useState(4);
   const [completedQuests, setCompletedQuests] = useState([]);
 
-  // Quest Verification Modal State
   const [verifyingQuest, setVerifyingQuest] = useState(null);
-  const [verificationStep, setVerificationStep] = useState(0);
-  const [photoCaptured, setPhotoCaptured] = useState(false);
-  const [qrScanned, setQrScanned] = useState(false);
-  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+  const [verifStep, setVerifStep] = useState(1); // Step 1: Client Signal, Step 2: Campus Signal, Step 3: Dual Consensus Match, Step 4: Approved & Minted
+  const [signalAProgress, setSignalAProgress] = useState(0);
+  const [signalBProgress, setSignalBProgress] = useState(0);
+  const [consensusStatus, setConsensusStatus] = useState('pending'); // 'pending' | 'checking' | 'matched' | 'fraud_detected'
+  const [isSimulatingLiveTelemetry, setIsSimulatingLiveTelemetry] = useState(false);
+  const [cubemsKwDrop, setCubemsKwDrop] = useState(0);
 
   // Social / Party State
   const [partyMembers, setPartyMembers] = useState(['คุณ (หัวหน้าทีม)', 'นพดล (วิศวฯ)', 'สุดารัตน์ (อักษรฯ)']);
@@ -113,6 +133,7 @@ export default function App() {
     { id: 3, title: 'เควสคัดแยกขวด PET', change: 10, type: 'earn', date: 'เมื่อวาน' },
   ]);
 
+  // Mini-game State
   const [grid, setGrid] = useState(Array(6).fill(null).map(() => Array(6).fill(0)));
   const [score, setScore] = useState(0);
   const [isGameOver, setIsGameOver] = useState(false);
@@ -121,13 +142,11 @@ export default function App() {
   const [activeThemeIdx, setActiveThemeIdx] = useState(0);
   const currentTheme = themeList[activeThemeIdx];
 
-  // Fluid Drag state with Floating Lift Offset
   const [draggedShapeIdx, setDraggedShapeIdx] = useState(null);
   const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
   const [startTouchPos, setStartTouchPos] = useState({ x: 0, y: 0 });
   const [hoverCell, setHoverCell] = useState(null);
 
-  // 15+ Board-friendly shapes (1x1, 1x2, 1x3, small corners, small T)
   const shapesDatabase = [
     { cells: [[1]] },
     { cells: [[1]] },
@@ -174,27 +193,287 @@ export default function App() {
     setLevel(newLevel);
   };
 
+  const energyQuests = [
+    { 
+      id: 'be_power', 
+      title: 'ปิดไฟและเครื่องปรับอากาศเมื่อไม่ใช้งาน', 
+      category: 'Energy Ghostbusters',
+      desc: 'ตรวจห้องเรียน/ห้องแล็บหลังเลิกเรียนเพื่อปิดแอร์และไฟที่เปิดทิ้งไว้',
+      reward: 20, 
+      xp: 50, 
+      carbon: 2.0, 
+      icon: '🔌',
+      riskLevel: 'LOW RISK (Sensor-Confirmed)',
+      // Technical Specification Details
+      signalA: {
+        title: 'Signal A: Smartphone (Client)',
+        badge: 'Live Photo + BLE Proximity',
+        specs: [
+          'อ่านค่าห้องผ่าน BLE Beacon (RSSI > -75 dBm ในรัศมี 5-8 ม.)',
+          'Camera Intent สด (ห้ามเลือกรูปใน Gallery) ฝัง Unix Timestamp',
+          'ตรวจสอบเวลาเลิกคลาสเรียนกับตารางกลาง Chula Class Schedule'
+        ]
+      },
+      signalB: {
+        title: 'Signal B: Campus Infrastructure',
+        badge: 'CUBEMS Telemetry Gateway',
+        specs: [
+          'ดึงค่า kW วงจรไฟฟ้าห้อง ENG 3-402 ย้อนหลัง 5 นาทีเทียบปัจจุบัน',
+          'ตรวจจับโหลดดิ่งลง (ΔP < 0) มากกว่า 20% ของโหลดปกติ',
+          'เกณฑ์ความสอดคล้อง: กระแสตกฮวบทันทีที่นิสิตยืนยันปิดสวิตช์'
+        ]
+      },
+      consensusLogic: 'Both Match (BLE + Camera ตรงกับ ΔP CUBEMS ตกฮวบ 1.8 kW) -> อนุมัติ +20 Coins'
+    },
+    { 
+      id: 'be_stairs', 
+      title: 'เดินขึ้นบันไดแทนลิฟต์ (≥ 3 ชั้น)', 
+      category: 'Energy Ghostbusters',
+      desc: 'เดินขึ้นบันไดตึกเรียนตั้งแต่ 3 ชั้นขึ้นไปเพื่อลดการกดเรียกลิฟต์',
+      reward: 15, 
+      xp: 35, 
+      carbon: 0.5, 
+      icon: '🪜',
+      riskLevel: 'MEDIUM RISK (Sensor Fusion)',
+      signalA: {
+        title: 'Signal A: Smartphone (Client)',
+        badge: 'Barometer + Step Cadence',
+        specs: [
+          'เซนเซอร์ Barometer ตรวจความกดอากาศลดลงสัมพันธ์กับระดับความสูง (ΔH ≥ 9 ม.)',
+          'Pedometer ตรวจจับจังหวะก้าวเดินต่อเนื่อง 60-95 steps/min',
+          'Vertical Velocity < 1.2 m/s (ตัดสิทธิ์หากความเร่งสูงผิดปกติแบบขึ้นลิฟต์)'
+        ]
+      },
+      signalB: {
+        title: 'Signal B: Campus Infrastructure',
+        badge: 'Floor BLE Beacons & QR',
+        specs: [
+          'แอปตรวจพบ Beacon ชั้น 1 สลับสู่ Beacon ชั้น 4 สำเร็จ',
+          'สแกน Dynamic Token QR ประจำโถงบันไดชั้นปลายทาง',
+          'ระยะเวลาเคลื่อนที่สมเหตุสมผลระหว่าง 45-120 วินาที'
+        ]
+      },
+      consensusLogic: 'Both Match (ก้าวเดินต่อเนื่อง + ความดันอากาศลด + Beacon สอดคล้อง) -> อนุมัติ +15 Coins'
+    }
+  ];
+
   const mobilityData = [
-    { id: 'm_bus', title: 'นั่งรถไฟฟ้า EV Pop Bus', desc: 'โดยสารรถป๊อปไฟฟ้าของมหาวิทยาลัยแทนรถส่วนตัว', verify: 'GPS + สแกน QR บนรถ', reward: 10, xp: 25, carbon: 0.6, icon: '🚌' },
-    { id: 'm_walk', title: 'เดินสัญจรทางสีเขียว', desc: 'เดินเรียนผ่านเส้นทางสวนป่าจามจุรี หรือทางเท้าบังแดด', verify: 'GPS + เช็คความเร็วเฉลี่ย', reward: 15, xp: 35, carbon: 0.8, icon: '🚶‍♂️' },
-    { id: 'm_bike', title: 'ปั่นจักรยาน CU Bike', desc: 'ปั่นจักรยานสาธารณะแชร์ริ่งเพื่อเชื่อมต่อระหว่างตึกเรียน', verify: 'GPS + เช็คความเร็วเฉลี่ย', reward: 15, xp: 35, carbon: 1.1, icon: '🚲' }
+    { 
+      id: 'm_bus', 
+      title: 'นั่งรถป๊อปไฟฟ้า (EV Pop Bus)', 
+      category: 'Eco-Route Match',
+      desc: 'โดยสารรถป๊อปไฟฟ้าของจุฬาฯ แทนการใช้รถส่วนตัวหรือวินมอเตอร์ไซค์',
+      reward: 10, 
+      xp: 25, 
+      carbon: 0.6, 
+      icon: '🚌',
+      riskLevel: 'HIGH RISK (Dual Telemetry Match)',
+      signalA: {
+        title: 'Signal A: Smartphone (Client)',
+        badge: 'Dynamic QR + GPS Track',
+        specs: [
+          'สแกน Rotating Token QR ภายในห้องโดยสารรถป๊อปประจำสาย',
+          'GPS โทรศัพท์บันทึกพิกัดบนเส้นทางเดินรถของจุฬาฯ (สาย 1-5)',
+          'บันทึกพิกัดและทิศทางต่อเนื่องตลอดระยะเดินทางขั้นต่ำ 500 ม.'
+        ]
+      },
+      signalB: {
+        title: 'Signal B: Campus Infrastructure',
+        badge: 'Chula Pop Bus Fleet GPS API',
+        specs: [
+          'เชื่อมต่อ Chula Pop Bus Telemetry ดึงพิกัด Real-time ของรถคันนั้น',
+          'Co-Location Algorithm เทียบ Lat/Lng ของโทรศัพท์กับตัวถังรถ',
+          'ความเร็วและ Vector การเคลื่อนที่ตรงกันมากกว่า 95% ตลอดทาง'
+        ]
+      },
+      consensusLogic: 'Both Match (พิกัดมือถือวิ่งประกบติดรถป๊อป ID: EV-08 ด้วยความเร็วเท่ากัน) -> อนุมัติ +10 Coins'
+    },
+    { 
+      id: 'm_walk', 
+      title: 'เดินสัญจรทางสีเขียว (Green Walk)', 
+      category: 'Eco-Route Match',
+      desc: 'เดินเรียนผ่านเส้นทางสวนป่าจามจุรี หรือทางเท้ามีหลังคาบังแดดรอบจุฬาฯ',
+      reward: 15, 
+      xp: 35, 
+      carbon: 0.8, 
+      icon: '🚶‍♂️',
+      riskLevel: 'HIGHEST RISK (Anti-Spoofing)',
+      signalA: {
+        title: 'Signal A: Smartphone (Client)',
+        badge: 'Speed Profile + Accelerometer',
+        specs: [
+          'ความเร็วเฉลี่ยล็อกอยู่ในช่วง 3.0 - 5.8 กม./ชม. (ตัดสิทธิ์ถ้ากระโดด)',
+          'ตรวจคลื่น Harmonic Oscillation 3 แกน (X,Y,Z) ของจังหวะร่างกายก้าวเดิน',
+          'ป้องกัน Mock Location & Fake GPS ปลอมตำแหน่งบน Android/iOS'
+        ]
+      },
+      signalB: {
+        title: 'Signal B: Campus Infrastructure',
+        badge: 'Urban Forest Geofence Gateways',
+        specs: [
+          'Geofencing ตัดผ่านจุดเช็กอินสวนป่าจามจุรีและศาลาพระเกี้ยว',
+          'เชื่อมต่อ BLE Micro-gateways ตามทางเท้าเพื่อพิสูจน์การผ่านเส้นทาง',
+          'คำนวณเวลาการเดินทางระหว่างจุดกำเนิดและจุดหมายปลายทาง'
+        ]
+      },
+      consensusLogic: 'Both Match (จังหวะก้าวเดินจริง ไม่นั่งรถยนต์ + ผ่าน Geofence ครบ) -> อนุมัติ +15 Coins'
+    },
+    { 
+      id: 'm_bike', 
+      title: 'ปั่นจักรยานสาธารณะ (CU Bike)', 
+      category: 'Eco-Route Match',
+      desc: 'ยืมจักรยานแชร์ริ่งเพื่อเชื่อมต่อระหว่างตึกเรียนคณะต่าง ๆ',
+      reward: 15, 
+      xp: 35, 
+      carbon: 1.1, 
+      icon: '🚲',
+      riskLevel: 'HIGH RISK (Dock Station API)',
+      signalA: {
+        title: 'Signal A: Smartphone (Client)',
+        badge: 'Cycling Speed & Gyroscope',
+        specs: [
+          'ความเร็วการเคลื่อนที่เฉลี่ย 8.0 - 18.0 กม./ชม.',
+          'Gyroscope ตรวจจับองศาการเอียงและการทรงตัวของยานพาหนะ 2 ล้อ',
+          'ระยะทางการปั่นรวมมากกว่า 600 เมตร'
+        ]
+      },
+      signalB: {
+        title: 'Signal B: Campus Infrastructure',
+        badge: 'CU Bike Smart Station API',
+        specs: [
+          'ตรวจจับรหัสปลดล็อก Smart Lock ที่สถานีต้นทาง',
+          'ตรวจสอบสถานะการคืนจักรยานสำเร็จ ณ แท่นชาร์จ/ล็อกสถานีปลายทาง',
+          'ระยะเวลาการเช่าสัมพันธ์กับเส้นทางและพิกัดการเดินทางจริง'
+        ]
+      },
+      consensusLogic: 'Both Match (ระบบ Docking แจ้งคืนจักรยานสำเร็จ + ความเร็วตรง) -> อนุมัติ +15 Coins'
+    }
   ];
 
   const zeroWasteQuests = [
-    { id: 'zw_sort', title: 'คัดแยกขยะประจำคณะ', desc: 'แยกขยะทั่วไป ขยะรีไซเคิล และเศษอาหาร ณ จุดแยกขยะ', verify: 'ถ่ายรูป + สแกน QR (วันละครั้ง)', reward: 10, xp: 25, carbon: 0.5, icon: '🗑️' },
-    { id: 'zw_bottle', title: 'คัดแยกขวด PET / กระป๋อง', desc: 'บดขวดพลาสติก PET หรือกระป๋องก่อนหยอดใส่ตู้รีไซเคิล', verify: 'ถ่ายรูป + สแกน QR (วันละครั้ง)', reward: 10, xp: 25, carbon: 0.7, icon: '🥫' },
-    { id: 'zw_recycle', title: 'ส่งขยะแห้งเข้ากระบวนการรีไซเคิล', desc: 'รวบรวมกล่องลัง กระดาษ หรือพลาสติกยืดส่งจุดรับรีไซเคิล', verify: 'ถ่ายรูป + สแกน QR (วันละครั้ง)', reward: 10, xp: 25, carbon: 0.8, icon: '♻️' },
-    { id: 'zw_bento', title: 'กล่องข้าว / ภาชนะหมุนเวียน', desc: 'ใช้กล่องข้าวและช้อนส้อมพกพาในโรงอาหาร สแกน QR ผ่านร้านค้า', verify: 'ถ่ายรูป + สแกน QR ผ่านร้านค้า', reward: 20, xp: 45, carbon: 1.2, icon: '🍱' },
-    { id: 'zw_water', title: 'เติมน้ำดื่ม (ห้ามใช้ขวดพลาสติก)', desc: 'นำกระบอกน้ำส่วนตัวมาเติมน้ำดื่ม ณ จุดบริการตู้เติมน้ำ', verify: 'ถ่ายรูป + สแกน QR ที่จุดเติมน้ำ', reward: 10, xp: 25, carbon: 0.4, icon: '💧' }
-  ];
-
-  const energyQuests = [
-    { id: 'be_power', title: 'ปิด/เปิดไฟฟ้าในห้องเรียน (On/Off)', desc: 'ปิดสวิตช์ไฟและแอร์เมื่อเลิกใช้งาน ระบบเทียบข้อมูล CUBEMS', verify: 'ข้อมูล Real-time จาก CUBEMS', reward: 20, xp: 50, carbon: 2.0, icon: '🔌' },
-    { id: 'be_stairs', title: 'เดินขึ้นบันไดแทนการใช้ลิฟต์', desc: 'เดินขึ้นลงบันไดตึกเรียนตั้งแต่ 3 ชั้นขึ้นไป สแกน QR ประจำชั้น', verify: 'สแกน QR Code ยืนยันพิกัดทุกชั้น', reward: 15, xp: 35, carbon: 0.5, icon: '🪜' }
+    { 
+      id: 'zw_bento', 
+      title: 'กล่องข้าวหมุนเวียน (Bento Box)', 
+      category: 'Zero-Waste Loop',
+      desc: 'ใช้กล่องข้าวและช้อนส้อมพกพาในโรงอาหาร สแกน QR ผ่านร้านค้า',
+      reward: 20, 
+      xp: 45, 
+      carbon: 1.2, 
+      icon: '🍱',
+      riskLevel: 'LOWEST RISK (Merchant Verified)',
+      signalA: {
+        title: 'Signal A: Smartphone (Client)',
+        badge: 'Dynamic User Passcode',
+        specs: [
+          'เปิด Dynamic Token บนแอปนิสิต (รหัสรีเฟรชทุก 60 วินาที)',
+          'จำกัดสิทธิ์ 1 ครั้งต่อมื้ออาหาร (Rate Limit เว้นช่วงอย่างน้อย 2 ชม.)',
+          'พิกัด Geofence อยู่ในบริเวณโรงอาหารหรือศาลาพระเกี้ยว'
+        ]
+      },
+      signalB: {
+        title: 'Signal B: Campus Infrastructure',
+        badge: 'Merchant Scanner / Smart POS',
+        specs: [
+          'ป้าคนขาย/แคชเชียร์ใช้ CU Merchant Scanner สแกนตัดสิทธิ์',
+          'ระบบโรงอาหารบันทึกการส่งกล่องข้าวหมุนเวียนสะอาดเข้าสู่วงจร',
+          'บันทึก Transaction รหัสร้านค้าลงระบบส่วนกลางของจุฬาฯ'
+        ]
+      },
+      consensusLogic: 'Both Match (ยืนยันผ่าน Merchant POS ของแท้ + รหัสโทเคนถูกต้อง) -> อนุมัติ +20 Coins'
+    },
+    { 
+      id: 'zw_sort', 
+      title: 'คัดแยกขยะ & รีไซเคิลขวด PET', 
+      category: 'Zero-Waste Loop',
+      desc: 'บดขวดพลาสติก PET หรือแยกเศษอาหาร ณ จุดคัดแยกขยะประจำคณะ',
+      reward: 10, 
+      xp: 25, 
+      carbon: 0.7, 
+      icon: '🥫',
+      riskLevel: 'MEDIUM RISK (AI + Spot-check)',
+      signalA: {
+        title: 'Signal A: Smartphone (Client)',
+        badge: 'In-App Camera + Barcode',
+        specs: [
+          'สแกนบาร์โค้ดข้างขวด PET / กระป๋องเพื่อเช็กประเภทวัสดุ',
+          'กล้องในแอปฝัง Micro-Watermark (รหัสนิสิต, พิกัด GPS, Epoch Time)',
+          'ห้ามอัปโหลดรูปจากคลังภาพ (ป้องกันการใช้ภาพเก่าซ้ำ)'
+        ]
+      },
+      signalB: {
+        title: 'Signal B: Campus Infrastructure',
+        badge: 'Smart Bin Beacon & Random Audit',
+        specs: [
+          'เชื่อมต่อ Bluetooth Beacon ประจำจุดคัดแยกขยะในระยะ 2 เมตร',
+          'On-device AI โมเดลตรวจจับลักษณะปากถังขยะและมือขณะหย่อนวัตถุ',
+          'สุ่มตรวจรูปภาพ 10-15% เข้าแดชบอร์ดตรวจสอบของทีมจิตอาสา'
+        ]
+      },
+      consensusLogic: 'Both Match (Beacon ประจำถังตรง + บาร์โค้ดผ่าน + AI ตรวจภาพผ่าน) -> อนุมัติ +10 Coins'
+    },
+    { 
+      id: 'zw_water', 
+      title: 'เติมน้ำดื่ม (Water Refill)', 
+      category: 'Zero-Waste Loop',
+      desc: 'นำกระบอกน้ำส่วนตัวมาเติมน้ำดื่ม ณ จุดบริการตู้เติมน้ำอัจฉริยะ',
+      reward: 10, 
+      xp: 25, 
+      carbon: 0.4, 
+      icon: '💧',
+      riskLevel: 'LOW RISK (Kiosk Telemetry)',
+      signalA: {
+        title: 'Signal A: Smartphone (Client)',
+        badge: 'In-App QR Scan + NFC',
+        specs: [
+          'สแกน QR Code ประจำหัวจ่ายตู้กดน้ำดื่ม',
+          'Session Timeout ภายใน 45 วินาทีระหว่างการกดเติมน้ำ',
+          'ระบบ Rate Limit ป้องกันการสแกนกดรับเหรียญซ้ำติดกัน'
+        ]
+      },
+      signalB: {
+        title: 'Signal B: Campus Infrastructure',
+        badge: 'Water Flow Telemetry Sensor',
+        specs: [
+          'เซนเซอร์การไหลของน้ำ (Flow Meter) ประจำตู้กดน้ำตรวจพบการจ่ายน้ำ',
+          'ปริมาตรน้ำที่จ่ายขั้นต่ำ 300 - 600 มิลลิลิตรในช่วงเวลาสแกน',
+          'ซิงก์ข้อมูลปริมาณน้ำที่ลดขวดพลาสติกเข้าสู่สถิติกลางมหาวิทยาลัย'
+        ]
+      },
+      consensusLogic: 'Both Match (สแกนตรงตู้ + เซนเซอร์จับการไหลของน้ำจริง) -> อนุมัติ +10 Coins'
+    }
   ];
 
   const socialQuests = [
-    { id: 'sc_friend', title: 'ชวนเพื่อนทำเควสร่วมกันสำเร็จ 1 ข้อ', desc: 'จับคู่ทำเควสสิ่งแวดล้อมใดก็ได้สำเร็จร่วมกันในวันนี้', verify: 'ยืนยันความสำเร็จร่วมกันในกลุ่มปาร์ตี้', reward: 20, xp: 60, carbon: 1.5, icon: '👥' }
+    { 
+      id: 'sc_friend', 
+      title: 'ชวนเพื่อนทำเควสร่วมกัน (Co-Op Party)', 
+      category: 'Eco-Community',
+      desc: 'จับคู่ทำเควสสิ่งแวดล้อมใดก็ได้สำเร็จร่วมกันในวันนี้เพื่อรับโบนัสยกทีม',
+      reward: 20, 
+      xp: 60, 
+      carbon: 1.5, 
+      icon: '👥',
+      riskLevel: 'LOWEST RISK (Chula SSO Consensus)',
+      signalA: {
+        title: 'Signal A: Smartphone (Client)',
+        badge: 'BLE Peer Proximity (Chirp)',
+        specs: [
+          'โทรศัพท์ของทั้งสองคนส่งสัญญาณ Bluetooth BLE ชนกันในระยะ < 3 เมตร',
+          'ยืนยันตัวตนคู่ผ่านบัญชี CU NET SSO / Chula OAuth 2.0 ป้องกันบอท',
+          'ระบบจับเวลาการทำภารกิจพร้อมกันในรัศมีเดียวกัน'
+        ]
+      },
+      signalB: {
+        title: 'Signal B: Campus Infrastructure',
+        badge: 'Central Identity & Quest State Engine',
+        specs: [
+          'ตรวจสอบสถานะว่าสมาชิกในปาร์ตี้ทำเควสเป้าหมายสำเร็จภายใน ±10 นาที',
+          'ประมวลผลการคำนวณคะแนนคูณโบนัสให้กับสมาชิกปาร์ตี้ทุกคน',
+          'บันทึกคะแนนส่วนรวมเข้าสู่ตาราง RES-Rank ประจำคณะ'
+        ]
+      },
+      consensusLogic: 'Both Match (BLE ยืนยันว่ายืนคู่กันจริง + SSO ตัวจริงทั้งคู่ผ่านเควส) -> อนุมัติ +20 Coins/คน'
+    }
   ];
 
   const handleInitiateQuestVerification = (quest) => {
@@ -204,33 +483,54 @@ export default function App() {
     }
     playSynthSound('select');
     setVerifyingQuest(quest);
-    setVerificationStep(0);
-    setPhotoCaptured(false);
-    setQrScanned(false);
-    setAiAnalyzing(false);
+    setVerifStep(1);
+    setSignalAProgress(0);
+    setSignalBProgress(0);
+    setConsensusStatus('pending');
+    setCubemsKwDrop(0);
+    setIsSimulatingLiveTelemetry(false);
   };
 
-  const handleNextVerificationStep = () => {
-    playSynthSound('select');
-    if (verificationStep === 0) {
-      setVerificationStep(1);
-    } else if (verificationStep === 1) {
-      setAiAnalyzing(true);
+  // Run the multi-step real verification simulation
+  const handleRunVerificationProcess = () => {
+    setIsSimulatingLiveTelemetry(true);
+    playSynthSound('scan');
+
+    // Simulate Signal A (Client Mobile Sensors)
+    setSignalAProgress(35);
+    setTimeout(() => {
+      setSignalAProgress(100);
+      setVerifStep(2);
+      playSynthSound('select');
+
+      // Simulate Signal B (Campus Hardware / CUBEMS / Beacons)
+      setSignalBProgress(40);
       setTimeout(() => {
-        setAiAnalyzing(false);
-        setPhotoCaptured(true);
-        setQrScanned(true);
-        setVerificationStep(2);
-        playSynthSound('select');
-      }, 1200);
-    } else if (verificationStep === 2) {
-      setVerificationStep(3);
-      executeQuestCompletion(verifyingQuest);
-    }
+        setSignalBProgress(100);
+        setVerifStep(3);
+        setConsensusStatus('checking');
+        playSynthSound('scan');
+
+        // Simulate Backend Consensus Match
+        setTimeout(() => {
+          setConsensusStatus('matched');
+          setCubemsKwDrop(1.85);
+          playSynthSound('match');
+
+          // Transition to Step 4: Approved & Minted
+          setTimeout(() => {
+            setVerifStep(4);
+            executeQuestCompletion(verifyingQuest);
+            setIsSimulatingLiveTelemetry(false);
+          }, 1000);
+        }, 1200);
+      }, 1100);
+    }, 1000);
   };
 
   const executeQuestCompletion = (quest) => {
-    setCompletedQuests([...completedQuests, quest.id]);
+    if (completedQuests.includes(quest.id)) return;
+    setCompletedQuests(prev => [...prev, quest.id]);
     setCoins(prev => prev + quest.reward);
     setCarbonSaved(prev => +(prev + quest.carbon).toFixed(1));
     addXP(quest.xp);
@@ -238,13 +538,13 @@ export default function App() {
 
     const newTx = {
       id: Date.now(),
-      title: `สำเร็จเควส ${quest.title}`,
+      title: `สำเร็จเควส: ${quest.title}`,
       change: quest.reward,
       type: 'earn',
       date: 'วันนี้'
     };
-    setTransactions([newTx, ...transactions]);
-    playSynthSound('perfect');
+    setTransactions(prev => [newTx, ...prev]);
+    playSynthSound('success');
   };
 
   const handleAddPartyMember = () => {
@@ -411,7 +711,7 @@ export default function App() {
 
     let extraPerfectBonus = 0;
     if (isFullyEmpty) {
-      playSynthSound('perfect');
+      playSynthSound('match');
       extraPerfectBonus = 1000;
       setActiveThemeIdx((prev) => (prev + 1) % themeList.length);
       triggerToast("🌟 PERFECT WIPE! เคลียร์กระดานหมดจด! สลับธีมสีใหม่!", "success");
@@ -447,7 +747,6 @@ export default function App() {
 
     if (!possibleMoveFound) {
       setIsGameOver(true);
-      playSynthSound('gameover');
     }
   };
 
@@ -524,7 +823,7 @@ export default function App() {
     >
       
       {/* MOBILE DEVICE CONTAINER */}
-      <div className="relative w-full max-w-[390px] h-[780px] bg-white rounded-[44px] shadow-2xl border-[10px] border-slate-900 overflow-hidden flex flex-col shrink-0">
+      <div className="relative w-full max-w-[400px] h-[820px] bg-white rounded-[44px] shadow-2xl border-[10px] border-slate-900 overflow-hidden flex flex-col shrink-0">
         
         {/* Hardware Notch */}
         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-slate-900 rounded-b-2xl z-40 flex items-center justify-center">
@@ -564,98 +863,211 @@ export default function App() {
 
         {}
         {verifyingQuest && (
-          <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-900 text-white rounded-3xl p-5 w-full max-w-[320px] space-y-4 border border-slate-800">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-950 px-2.5 py-0.5 rounded-full">
-                  ด่านพิสูจน์ตามกิจกรรมจริง
-                </span>
-                <button onClick={() => setVerifyingQuest(null)} className="p-1 text-slate-400 hover:text-white">
+          <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-3 animate-fadeIn">
+            <div className="bg-slate-900 text-white rounded-3xl p-4 w-full max-w-[360px] space-y-3 border border-slate-800 shadow-2xl overflow-y-auto max-h-[760px]">
+              
+              {/* Header */}
+              <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400">
+                      Cross-Verification Engine
+                    </span>
+                    <p className="text-[10px] text-slate-400 font-semibold">{verifyingQuest.riskLevel}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setVerifyingQuest(null)} 
+                  className="p-1 text-slate-400 hover:text-white rounded-full bg-slate-800"
+                >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">{verifyingQuest.icon}</span>
-                  <div>
-                    <h4 className="text-sm font-black text-white">{verifyingQuest.title}</h4>
-                    <p className="text-[10px] text-pink-400 font-bold">รับ +{verifyingQuest.reward} Eco-Coins 🪙</p>
+              {/* Quest Target Card */}
+              <div className="bg-slate-800/80 p-3 rounded-2xl flex items-center gap-3 border border-slate-700/60">
+                <span className="text-3xl p-1 bg-slate-900 rounded-xl">{verifyingQuest.icon}</span>
+                <div className="flex-1">
+                  <h4 className="text-xs font-black text-white leading-tight">{verifyingQuest.title}</h4>
+                  <p className="text-[9.5px] text-emerald-400 font-extrabold mt-0.5">
+                    รางวัล: +{verifyingQuest.reward} Eco-Coins 🪙 | +{verifyingQuest.xp} XP | -{verifyingQuest.carbon} kgCO₂e
+                  </p>
+                </div>
+              </div>
+
+              {/* DUAL SIGNAL LIVE TRACKING BOARD */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-[10px] font-bold text-slate-300">
+                  <span className="flex items-center gap-1">
+                    <Layers className="w-3.5 h-3.5 text-sky-400" /> ตรวจสอบ 2 สัญญาณคู่ขนาน (Dual-Signal)
+                  </span>
+                  <span className="text-emerald-400">Step {verifStep}/4</span>
+                </div>
+
+                {/* SIGNAL A: CLIENT SMARTPHONE */}
+                <div className={`p-3 rounded-2xl border transition-all ${
+                  signalAProgress === 100 
+                    ? 'bg-sky-950/30 border-sky-500/40' 
+                    : 'bg-slate-800/50 border-slate-700'
+                }`}>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-1.5">
+                      <Radio className="w-3.5 h-3.5 text-sky-400 animate-pulse" />
+                      <span className="text-[11px] font-black text-sky-300">
+                        {verifyingQuest.signalA.title}
+                      </span>
+                    </div>
+                    <span className="text-[9px] bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded-full font-bold">
+                      {verifyingQuest.signalA.badge}
+                    </span>
+                  </div>
+
+                  <ul className="mt-2 space-y-1 text-[9px] text-slate-300">
+                    {verifyingQuest.signalA.specs.map((spec, i) => (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <span className="text-sky-400 font-bold">•</span>
+                        <span>{spec}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* Progress Bar A */}
+                  <div className="mt-2.5 flex items-center gap-2">
+                    <div className="flex-1 bg-slate-900 h-1.5 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-sky-400 h-full rounded-full transition-all duration-500" 
+                        style={{ width: `${signalAProgress}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-[9px] font-black text-sky-400">
+                      {signalAProgress === 100 ? '✓ Verified' : `${signalAProgress}%`}
+                    </span>
                   </div>
                 </div>
+
+                {/* SIGNAL B: CAMPUS INFRASTRUCTURE */}
+                <div className={`p-3 rounded-2xl border transition-all ${
+                  signalBProgress === 100 
+                    ? 'bg-emerald-950/30 border-emerald-500/40' 
+                    : 'bg-slate-800/50 border-slate-700'
+                }`}>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-1.5">
+                      <Cpu className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                      <span className="text-[11px] font-black text-emerald-300">
+                        {verifyingQuest.signalB.title}
+                      </span>
+                    </div>
+                    <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-bold">
+                      {verifyingQuest.signalB.badge}
+                    </span>
+                  </div>
+
+                  <ul className="mt-2 space-y-1 text-[9px] text-slate-300">
+                    {verifyingQuest.signalB.specs.map((spec, i) => (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <span className="text-emerald-400 font-bold">•</span>
+                        <span>{spec}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* Progress Bar B */}
+                  <div className="mt-2.5 flex items-center gap-2">
+                    <div className="flex-1 bg-slate-900 h-1.5 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-emerald-400 h-full rounded-full transition-all duration-500" 
+                        style={{ width: `${signalBProgress}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-[9px] font-black text-emerald-400">
+                      {signalBProgress === 100 ? '✓ Telemetry Synced' : `${signalBProgress}%`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* CONSENSUS ENGINE DECISION CARD */}
+                <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800 text-[10px]">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-extrabold text-slate-400">Backend Consensus Engine:</span>
+                    {consensusStatus === 'matched' ? (
+                      <span className="text-emerald-400 font-black flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Both Match: TRUE
+                      </span>
+                    ) : consensusStatus === 'checking' ? (
+                      <span className="text-amber-400 font-bold animate-pulse">
+                        กำลังเทียบ Dual-Signals...
+                      </span>
+                    ) : (
+                      <span className="text-slate-500 font-bold">Waiting for Handshake</span>
+                    )}
+                  </div>
+                  <p className="text-[9px] text-slate-400 leading-tight">
+                    {verifyingQuest.consensusLogic}
+                  </p>
+                  {cubemsKwDrop > 0 && (
+                    <div className="mt-1.5 p-1.5 rounded-lg bg-emerald-900/30 border border-emerald-500/30 text-emerald-300 flex justify-between items-center text-[9px]">
+                      <span>⚡ CUBEMS Drop-Load Meter:</span>
+                      <span className="font-black text-emerald-400">-{cubemsKwDrop} kW (ผ่านเกณฑ์)</span>
+                    </div>
+                  )}
+                </div>
+
               </div>
 
-              <div className="space-y-2 bg-black/40 p-3 rounded-2xl text-[10.5px]">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-300">
-                    1. {verifyingQuest.verify.split('+')[0] || 'ตรวจสอบตำแหน่ง'}
-                  </span>
-                  {verificationStep >= 1 ? (
-                    <span className="text-emerald-400 font-bold">✓ ตรวจพบ</span>
-                  ) : (
-                    <span className="text-slate-500 animate-pulse">กำลังสแกน...</span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-300">
-                    2. {verifyingQuest.verify.split('+')[1] || 'สแกน QR / ยืนยัน'}
-                  </span>
-                  {aiAnalyzing ? (
-                    <span className="text-amber-400 animate-pulse font-bold">กำลังสแกน...</span>
-                  ) : photoCaptured || qrScanned ? (
-                    <span className="text-emerald-400 font-bold">✓ ผ่านด่าน</span>
-                  ) : verificationStep >= 1 ? (
-                    <span className="text-pink-400 font-bold animate-pulse">📸 รอสแกน/ถ่ายรูป</span>
-                  ) : (
-                    <span className="text-slate-600">รอดำเนินการ</span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-300">
-                    3. บันทึกผลลงฐานข้อมูล
-                  </span>
-                  {verificationStep >= 3 ? (
-                    <span className="text-emerald-400 font-bold">✓ สำเร็จแล้ว</span>
-                  ) : verificationStep >= 2 ? (
-                    <span className="text-emerald-400 animate-pulse font-semibold">กำลังซิงก์...</span>
-                  ) : (
-                    <span className="text-slate-600">รอดำเนินการ</span>
-                  )}
-                </div>
-              </div>
-
-              {verificationStep < 3 ? (
+              {/* ACTION BUTTON CONTROLLER */}
+              {verifStep < 4 ? (
                 <button 
-                  onClick={handleNextVerificationStep}
-                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
+                  onClick={handleRunVerificationProcess}
+                  disabled={isSimulatingLiveTelemetry}
+                  className={`w-full py-3 rounded-2xl font-black text-xs flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.98] ${
+                    isSimulatingLiveTelemetry 
+                      ? 'bg-slate-700 text-slate-400 cursor-wait' 
+                      : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20'
+                  }`}
                 >
-                  {verificationStep === 0 && <>ถัดไป: สแกนพิกัด GPS / Beacon</>}
-                  {verificationStep === 1 && (
-                    <><QrCode className="w-4 h-4" /> แตะเพื่อสแกน QR / ถ่ายรูปยืนยัน</>
+                  {isSimulatingLiveTelemetry ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
+                      กำลังประมวลผล Dual-Signal Consensus...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 fill-slate-950" />
+                      เริ่มพิสูจน์เควสด้วย 2 สัญญาณจริง (Verify)
+                    </>
                   )}
-                  {verificationStep === 2 && <>อัปโหลดเพื่อบันทึกประวัติการทำเควส</>}
                 </button>
               ) : (
                 <div className="text-center py-2 space-y-2">
-                  <p className="text-emerald-400 font-bold text-xs">🎉 ทำเควสสำเร็จ! ได้รับ +{verifyingQuest.reward} Eco-Coins</p>
+                  <div className="bg-emerald-500/10 border border-emerald-500/40 p-2.5 rounded-2xl">
+                    <p className="text-emerald-400 font-black text-xs flex items-center justify-center gap-1">
+                      <CheckCircle2 className="w-4 h-4" /> ผ่านการตรวจสอบสมบูรณ์!
+                    </p>
+                    <p className="text-[10px] text-slate-300 mt-1">
+                      อนุมัติโอน +{verifyingQuest.reward} Eco-Coins และบวกคะแนน RES คณะเรียบร้อย
+                    </p>
+                  </div>
                   <button 
                     onClick={() => setVerifyingQuest(null)}
-                    className="w-full bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-semibold"
+                    className="w-full bg-slate-800 hover:bg-slate-700 text-white py-2.5 rounded-2xl text-xs font-bold transition-all"
                   >
-                    ปิดหน้าต่างนี้
+                    ปิดหน้าต่างการตรวจสอบ
                   </button>
                 </div>
               )}
+
             </div>
           </div>
         )}
 
-        {/* SCROLLABLE CONTENT */}
+        {}
         <div className="flex-1 overflow-y-auto bg-slate-50 relative pb-16">
           
-          {}
+          {/* TAB 1: HOME PAGE */}
           {activeTab === 'home' && (
             <div className="p-4 space-y-4 animate-fadeIn">
               
@@ -789,7 +1201,7 @@ export default function App() {
             </div>
           )}
 
-          {}
+          {/* TAB 2: GREEN MOBILITY ROUTE */}
           {activeTab === 'route' && (
             <div className="p-4 space-y-4 animate-fadeIn">
               
@@ -833,29 +1245,37 @@ export default function App() {
                   return (
                     <div 
                       key={mQuest.id}
-                      className="bg-white rounded-2xl p-3 border border-slate-100 hover:border-slate-200 shadow-xs flex justify-between items-center transition-all"
+                      className="bg-white rounded-2xl p-3.5 border border-slate-100 hover:border-slate-200 shadow-xs flex justify-between items-center transition-all"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl flex flex-col items-center justify-center font-bold text-lg bg-emerald-50 text-emerald-700 shrink-0">
+                        <div className="w-10 h-10 rounded-xl flex flex-col items-center justify-center font-bold text-xl bg-emerald-50 text-emerald-700 shrink-0">
                           {mQuest.icon}
                         </div>
 
                         <div>
-                          <h4 className="text-[11px] font-bold text-slate-800">{mQuest.title}</h4>
+                          <div className="flex items-center gap-1.5">
+                            <h4 className="text-[11px] font-bold text-slate-800">{mQuest.title}</h4>
+                            <span className="text-[8px] bg-slate-100 text-slate-500 px-1.5 py-0.2 rounded font-semibold">
+                              {mQuest.riskLevel.split(' ')[0]}
+                            </span>
+                          </div>
                           <p className="text-[9px] text-slate-500 leading-tight mt-0.5">{mQuest.desc}</p>
+                          <p className="text-[8px] text-sky-600 font-semibold mt-1">
+                            🔍 Dual-Verify: {mQuest.signalA.badge} vs. {mQuest.signalB.badge}
+                          </p>
                         </div>
                       </div>
 
                       <div className="shrink-0 text-right space-y-1">
                         <span className="text-[10.5px] font-black text-emerald-600 block">+{mQuest.reward} 🪙</span>
                         {isDone ? (
-                          <span className="text-[9px] bg-slate-100 text-slate-500 font-bold px-2 py-1 rounded-lg block">
+                          <span className="text-[9px] bg-slate-100 text-slate-500 font-bold px-2.5 py-1 rounded-xl block">
                             ทำแล้ววันนี้
                           </span>
                         ) : (
                           <button 
                             onClick={() => handleInitiateQuestVerification(mQuest)}
-                            className="text-[10px] font-black px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-95"
+                            className="text-[10px] font-black px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-95"
                           >
                             ทำเควส
                           </button>
@@ -869,19 +1289,11 @@ export default function App() {
             </div>
           )}
 
-          {}
+          {/* TAB 3: QUESTS CATEGORIES */}
           {activeTab === 'quests' && (
             <div className="p-4 space-y-4 animate-fadeIn">
               
               <div className="bg-white p-1 rounded-2xl border border-slate-200/80 grid grid-cols-3 gap-1 select-none">
-                <button
-                  onClick={() => setActiveQuestCategory('zero_waste')}
-                  className={`py-1.5 rounded-xl text-[10px] font-bold transition-all ${
-                    activeQuestCategory === 'zero_waste' ? 'bg-emerald-600 text-white' : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  Zero Waste
-                </button>
                 <button
                   onClick={() => setActiveQuestCategory('energy')}
                   className={`py-1.5 rounded-xl text-[10px] font-bold transition-all ${
@@ -889,6 +1301,14 @@ export default function App() {
                   }`}
                 >
                   Building Energy
+                </button>
+                <button
+                  onClick={() => setActiveQuestCategory('zero_waste')}
+                  className={`py-1.5 rounded-xl text-[10px] font-bold transition-all ${
+                    activeQuestCategory === 'zero_waste' ? 'bg-emerald-600 text-white' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Zero Waste
                 </button>
                 <button
                   onClick={() => setActiveQuestCategory('social')}
@@ -900,69 +1320,48 @@ export default function App() {
                 </button>
               </div>
 
-              {activeQuestCategory === 'zero_waste' && (
-                <div className="space-y-2.5">
-                  {zeroWasteQuests.map((quest) => {
-                    const isDone = completedQuests.includes(quest.id);
-                    return (
-                      <div key={quest.id} className="bg-white rounded-2xl p-3 border border-slate-100 hover:border-slate-200 shadow-xs flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xl shrink-0">
-                            {quest.icon}
-                          </div>
-                          <div>
-                            <h4 className="text-[11px] font-bold text-slate-800">{quest.title}</h4>
-                            <p className="text-[9.5px] text-slate-500 leading-tight mt-0.5">{quest.desc}</p>
-                          </div>
-                        </div>
-
-                        <div className="shrink-0 text-right space-y-1">
-                          <span className="text-[10.5px] font-black text-emerald-600 block">+{quest.reward} 🪙</span>
-                          {isDone ? (
-                            <span className="text-[9px] bg-slate-100 text-slate-500 font-bold px-2 py-1 rounded-lg block">
-                              ทำแล้ววันนี้
-                            </span>
-                          ) : (
-                            <button 
-                              onClick={() => handleInitiateQuestVerification(quest)}
-                              className="text-[10px] font-bold px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white transition-all active:scale-95"
-                            >
-                              ทำเควส
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
+              {/* Category 1: Building Energy */}
               {activeQuestCategory === 'energy' && (
                 <div className="space-y-2.5">
+                  <div className="bg-emerald-50 border border-emerald-200/60 p-2.5 rounded-2xl text-[10px] text-emerald-900 leading-normal flex items-start gap-2">
+                    <Zap className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <p>
+                      <strong>CUBEMS Integration:</strong> ระบบจะเชื่อมต่อ API มิเตอร์วัดกระแสไฟฟ้าแบบเรียลไทม์เพื่อยืนยัน Drop-load พลังงานจริงในห้องเรียน
+                    </p>
+                  </div>
+
                   {energyQuests.map((quest) => {
                     const isDone = completedQuests.includes(quest.id);
                     return (
-                      <div key={quest.id} className="bg-white rounded-2xl p-3 border border-slate-100 hover:border-slate-200 shadow-xs flex justify-between items-center">
+                      <div key={quest.id} className="bg-white rounded-2xl p-3.5 border border-slate-100 hover:border-slate-200 shadow-xs flex justify-between items-center">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xl shrink-0">
+                          <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-2xl shrink-0">
                             {quest.icon}
                           </div>
                           <div>
-                            <h4 className="text-[11px] font-bold text-slate-800">{quest.title}</h4>
+                            <div className="flex items-center gap-1.5">
+                              <h4 className="text-[11px] font-bold text-slate-800">{quest.title}</h4>
+                              <span className="text-[8px] bg-slate-100 text-slate-500 px-1.5 py-0.2 rounded font-semibold">
+                                {quest.riskLevel.split(' ')[0]}
+                              </span>
+                            </div>
                             <p className="text-[9.5px] text-slate-500 leading-tight mt-0.5">{quest.desc}</p>
+                            <p className="text-[8px] text-emerald-600 font-semibold mt-1">
+                              🔍 Dual-Verify: {quest.signalA.badge} vs. {quest.signalB.badge}
+                            </p>
                           </div>
                         </div>
 
                         <div className="shrink-0 text-right space-y-1">
                           <span className="text-[10.5px] font-black text-emerald-600 block">+{quest.reward} 🪙</span>
                           {isDone ? (
-                            <span className="text-[9px] bg-slate-100 text-slate-500 font-bold px-2 py-1 rounded-lg block">
+                            <span className="text-[9px] bg-slate-100 text-slate-500 font-bold px-2.5 py-1 rounded-xl block">
                               ทำแล้ววันนี้
                             </span>
                           ) : (
                             <button 
                               onClick={() => handleInitiateQuestVerification(quest)}
-                              className="text-[10px] font-bold px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white transition-all active:scale-95"
+                              className="text-[10px] font-black px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white transition-all active:scale-95"
                             >
                               ทำเควส
                             </button>
@@ -974,6 +1373,60 @@ export default function App() {
                 </div>
               )}
 
+              {/* Category 2: Zero Waste */}
+              {activeQuestCategory === 'zero_waste' && (
+                <div className="space-y-2.5">
+                  <div className="bg-sky-50 border border-sky-200/60 p-2.5 rounded-2xl text-[10px] text-sky-950 leading-normal flex items-start gap-2">
+                    <ShieldCheck className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                    <p>
+                      <strong>Merchant & Beacon Verification:</strong> ยืนยันผ่านเครื่องสแกนร้านค้า หรือ On-device AI ร่วมกับการสุ่มตรวจ Spot-check 10-15%
+                    </p>
+                  </div>
+
+                  {zeroWasteQuests.map((quest) => {
+                    const isDone = completedQuests.includes(quest.id);
+                    return (
+                      <div key={quest.id} className="bg-white rounded-2xl p-3.5 border border-slate-100 hover:border-slate-200 shadow-xs flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-2xl shrink-0">
+                            {quest.icon}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <h4 className="text-[11px] font-bold text-slate-800">{quest.title}</h4>
+                              <span className="text-[8px] bg-slate-100 text-slate-500 px-1.5 py-0.2 rounded font-semibold">
+                                {quest.riskLevel.split(' ')[0]}
+                              </span>
+                            </div>
+                            <p className="text-[9.5px] text-slate-500 leading-tight mt-0.5">{quest.desc}</p>
+                            <p className="text-[8px] text-sky-600 font-semibold mt-1">
+                              🔍 Dual-Verify: {quest.signalA.badge} vs. {quest.signalB.badge}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 text-right space-y-1">
+                          <span className="text-[10.5px] font-black text-emerald-600 block">+{quest.reward} 🪙</span>
+                          {isDone ? (
+                            <span className="text-[9px] bg-slate-100 text-slate-500 font-bold px-2.5 py-1 rounded-xl block">
+                              ทำแล้ววันนี้
+                            </span>
+                          ) : (
+                            <button 
+                              onClick={() => handleInitiateQuestVerification(quest)}
+                              className="text-[10px] font-black px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white transition-all active:scale-95"
+                            >
+                              ทำเควส
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Category 3: Social & Co-Op */}
               {activeQuestCategory === 'social' && (
                 <div className="space-y-3">
                   <div className="bg-gradient-to-br from-indigo-900 to-slate-900 text-white rounded-2xl p-3.5 space-y-3 border border-indigo-500/30">
@@ -1015,27 +1468,35 @@ export default function App() {
                   {socialQuests.map((quest) => {
                     const isDone = completedQuests.includes(quest.id);
                     return (
-                      <div key={quest.id} className="bg-white rounded-2xl p-3 border border-slate-100 flex justify-between items-center">
+                      <div key={quest.id} className="bg-white rounded-2xl p-3.5 border border-slate-100 flex justify-between items-center">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-xl shrink-0">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-2xl shrink-0">
                             {quest.icon}
                           </div>
                           <div>
-                            <h4 className="text-[11px] font-bold text-slate-800">{quest.title}</h4>
+                            <div className="flex items-center gap-1.5">
+                              <h4 className="text-[11px] font-bold text-slate-800">{quest.title}</h4>
+                              <span className="text-[8px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-semibold">
+                                Dual-SSO
+                              </span>
+                            </div>
                             <p className="text-[9.5px] text-slate-500 mt-0.5">{quest.desc}</p>
+                            <p className="text-[8px] text-indigo-600 font-semibold mt-1">
+                              🔍 Dual-Verify: {quest.signalA.badge} vs. {quest.signalB.badge}
+                            </p>
                           </div>
                         </div>
 
                         <div className="shrink-0 text-right space-y-1">
                           <span className="text-[10.5px] font-black text-emerald-600 block">+{quest.reward} 🪙</span>
                           {isDone ? (
-                            <span className="text-[9px] bg-slate-100 text-slate-500 font-bold px-2 py-1 rounded-lg block">
+                            <span className="text-[9px] bg-slate-100 text-slate-500 font-bold px-2.5 py-1 rounded-xl block">
                               ทำแล้ววันนี้
                             </span>
                           ) : (
                             <button 
                               onClick={() => handleInitiateQuestVerification(quest)}
-                              className="text-[10px] font-bold px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition-all active:scale-95"
+                              className="text-[10px] font-black px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition-all active:scale-95"
                             >
                               ทำเควสทีม
                             </button>
@@ -1050,7 +1511,7 @@ export default function App() {
             </div>
           )}
 
-          {}
+          {/* TAB 4: WALLET & REWARDS */}
           {activeTab === 'wallet' && (
             <div className="p-4 space-y-4 animate-fadeIn">
               
@@ -1132,7 +1593,7 @@ export default function App() {
             </div>
           )}
 
-          {}
+          {/* TAB 5: MINIGAME (BLOCK BLAST) */}
           {activeTab === 'game' && (
             <div className="p-4 space-y-4 animate-fadeIn">
               
@@ -1307,7 +1768,7 @@ export default function App() {
 
         </div>
 
-        {}
+        {/* BOTTOM GLOBAL MOBILE TAB NAVIGATION BAR */}
         <div className="absolute bottom-0 left-0 right-0 h-[64px] bg-white border-t border-slate-200/80 px-4 py-2 flex justify-around items-center rounded-t-2xl shadow-lg z-20 select-none shrink-0">
           
           <button 
